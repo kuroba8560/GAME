@@ -3,35 +3,823 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>「先進封裝」良率分類機 - Advanced Packaging Yield Classifier</title>
-    <meta name="description" content="扮演無塵室工程師，在先進封裝產線上過濾瑕疵晶片，保障3D堆疊晶粒良率！體驗半導體製造與工業管理的極限反應挑戰。">
-    <!-- Google Fonts for High-Tech / Cyberpunk UI -->
+    <title>FAB-36 先進封裝良率分類機 - Advanced Yield Optimization</title>
+    <meta name="description" content="控制 FAB-36 產線，利用 Canvas 與 Web Audio 技術即時檢測 3D 堆疊晶粒良率！">
+    
+    <!-- Google Fonts for Cyber Console UI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-darker: #040812;
+            --bg-dark: #090f20;
+            --bg-panel: rgba(10, 18, 36, 0.75);
+            --border-color: rgba(6, 182, 212, 0.2);
+            --border-hover: rgba(6, 182, 212, 0.55);
+            
+            --neon-cyan: #06b6d4;
+            --neon-green: #10b981;
+            --neon-red: #ef4444;
+            --neon-amber: #f59e0b;
+            --neon-blue: #3b82f6;
+
+            --glow-cyan: 0 0 12px rgba(6, 182, 212, 0.5);
+            --glow-green: 0 0 12px rgba(16, 185, 129, 0.5);
+            --glow-red: 0 0 12px rgba(239, 68, 68, 0.5);
+            --glow-amber: 0 0 12px rgba(245, 158, 11, 0.5);
+
+            --font-cyber: 'Orbitron', 'Inter', sans-serif;
+            --font-mono: 'Share Tech Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        body {
+            background-color: var(--bg-darker);
+            color: #e2e8f0;
+            font-family: var(--font-cyber);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient scanline and grids */
+        #cyber-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #cyber-bg::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, transparent 40%, #040812 90%);
+        }
+
+        #scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.15) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* TEXT STYLES */
+        .text-green { color: var(--neon-green); text-shadow: var(--glow-green); }
+        .text-cyan { color: var(--neon-cyan); text-shadow: var(--glow-cyan); }
+        .text-red { color: var(--neon-red); text-shadow: var(--glow-red); }
+        .text-amber { color: var(--neon-amber); text-shadow: var(--glow-amber); }
+        .text-gold { color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.4); }
+        .text-dim { color: rgba(226, 232, 240, 0.4); font-family: var(--font-mono); }
+
+        .bg-green { background-color: var(--neon-green); box-shadow: var(--glow-green); }
+        .bg-cyan { background-color: var(--neon-cyan); box-shadow: var(--glow-cyan); }
+
+        /* INTERFACE GRID */
+        #game-container {
+            position: relative;
+            z-index: 10;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        /* TOP HEADER BAR */
+        #top-bar {
+            height: 55px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #main-title {
+            font-size: 1.25rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #ffffff 40%, var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .pulse-indicator {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+            box-shadow: var(--glow-green);
+            animation: pulse-dot 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.85); opacity: 0.5; }
+            100% { transform: scale(1.15); opacity: 1; }
+        }
+
+        .cleanroom-status {
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+        }
+        .cleanroom-status .label { color: rgba(226, 232, 240, 0.5); }
+        .cleanroom-status .value { color: var(--neon-cyan); font-weight: bold; }
+
+        .stability-beacons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            color: rgba(226, 232, 240, 0.6);
+        }
+        .beacons-wrapper { display: flex; gap: 6px; }
+        .beacon {
+            width: 22px;
+            height: 12px;
+            border-radius: 2.5px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .beacon.active {
+            background: var(--neon-green);
+            box-shadow: var(--glow-green), inset 0 0 3px #ffffff;
+            border-color: var(--neon-green);
+        }
+        .beacon.warning {
+            background: var(--neon-red);
+            box-shadow: var(--glow-red), inset 0 0 3px #ffffff;
+            border-color: var(--neon-red);
+            animation: blink-red 0.5s infinite alternate;
+        }
+        @keyframes blink-red {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* MAIN ASSEMBLY ZONE DECK */
+        #main-deck {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        /* CENTRAL GLASS PANELS */
+        .deck-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            min-height: 0;
+        }
+
+        .panel-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            border-left: 3px solid var(--neon-cyan);
+            padding-left: 8px;
+        }
+
+        /* LEFT PANEL: DATA CENTER */
+        #stats-panel {
+            width: 310px;
+            flex-shrink: 0;
+        }
+
+        .metrics-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .metric-card {
+            background: rgba(10, 15, 30, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+        .metric-card:hover {
+            border-color: var(--border-hover);
+            background: rgba(10, 15, 30, 0.9);
+        }
+
+        .metric-label {
+            font-size: 0.72rem;
+            color: rgba(226, 232, 240, 0.45);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .metric-value-wrapper {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .metric-value-wrapper .value {
+            font-size: 1.55rem;
+            font-weight: bold;
+            font-family: var(--font-mono);
+        }
+        .metric-value-wrapper .unit {
+            font-size: 0.8rem;
+            color: rgba(226, 232, 240, 0.4);
+            font-family: var(--font-mono);
+        }
+
+        .metric-progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+        .metric-progress-bar .bar {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .metric-sub {
+            font-size: 0.65rem;
+            color: rgba(226, 232, 240, 0.35);
+            font-family: var(--font-mono);
+        }
+
+        /* Industry Console Log */
+        #terminal-log {
+            margin-top: 15px;
+            height: 140px;
+            background: rgba(2, 6, 12, 0.85);
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .terminal-header {
+            background: rgba(6, 182, 212, 0.05);
+            border-bottom: 1px solid rgba(6, 182, 212, 0.1);
+            padding: 4px 10px;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: rgba(6, 182, 212, 0.8);
+            display: flex;
+            justify-content: space-between;
+        }
+        #terminal-body {
+            flex: 1;
+            padding: 8px 10px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            line-height: 1.45;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* RIGHT PANEL: CORE ASSEMBLY GRID */
+        #assembly-panel {
+            flex: 1;
+        }
+
+        .assembly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        .controls-hint {
+            font-size: 0.72rem;
+            color: rgba(226, 232, 240, 0.4);
+            font-family: var(--font-mono);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        /* AOI SCAN DIAGNOSTIC SCREEN */
+        #hologram-screen {
+            height: 145px;
+            background: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.08) 0%, rgba(2, 6, 12, 0.9) 80%);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 15px;
+            box-shadow: inset 0 0 15px rgba(6, 182, 212, 0.15);
+        }
+        .hologram-grid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: 20px 20px;
+            background-image: 
+                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+        }
+        .scan-laser-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan), 0 0 3px var(--neon-cyan);
+            z-index: 5;
+            animation: laser-sweep-holo 3s infinite linear;
+        }
+        @keyframes laser-sweep-holo {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+        .hologram-viewport {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 8px 30px;
+        }
+        #hologram-wireframe {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #holo-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.4));
+        }
+        .hologram-readout {
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: rgba(2, 6, 12, 0.65);
+            border: 1px solid rgba(6, 182, 212, 0.1);
+            border-radius: 4px;
+            padding: 10px 12px;
+        }
+        .readout-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .readout-label { color: rgba(226, 232, 240, 0.4); }
+
+        /* CANVAS CONVEYOR STAGE */
+        #stage-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: rgba(2, 6, 12, 0.45);
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .suction-tag, .scrap-tag {
+            height: 22px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+        .suction-tag {
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+            color: var(--neon-green);
+        }
+        .scrap-tag {
+            background: linear-gradient(0deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
+            border-top: 1px solid rgba(239, 68, 68, 0.15);
+            color: var(--neon-red);
+        }
+        #game-canvas {
+            flex: 1;
+            width: 100%;
+            display: block;
+            background: #03060f;
+            cursor: pointer;
+        }
+
+        /* ACTION DECK TACTILE BUTTONS */
+        #control-buttons-deck {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding: 5px 0;
+        }
+        .tactile-btn {
+            width: 190px;
+            height: 60px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            outline: none;
+        }
+        .btn-cap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-cyber);
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .pass-btn .btn-cap {
+            background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+            border: 2px solid #34d399;
+            box-shadow: 0 5px 0 #064e3b, 0 8px 15px rgba(16, 185, 129, 0.35);
+            color: #ffffff;
+        }
+        .pass-btn:hover .btn-cap {
+            box-shadow: 0 5px 0 #064e3b, 0 10px 20px rgba(16, 185, 129, 0.5);
+        }
+        .pass-btn:active .btn-cap,
+        .pass-btn.active .btn-cap {
+            transform: translateY(3.5px);
+            box-shadow: 0 1.5px 0 #064e3b, 0 3px 8px rgba(16, 185, 129, 0.35);
+        }
+        .reject-btn .btn-cap {
+            background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+            border: 2px solid #f87171;
+            box-shadow: 0 5px 0 #7f1d1d, 0 8px 15px rgba(239, 68, 68, 0.35);
+            color: #ffffff;
+        }
+        .reject-btn:hover .btn-cap {
+            box-shadow: 0 5px 0 #7f1d1d, 0 10px 20px rgba(239, 68, 68, 0.5);
+        }
+        .reject-btn:active .btn-cap,
+        .reject-btn.active .btn-cap {
+            transform: translateY(3.5px);
+            box-shadow: 0 1.5px 0 #7f1d1d, 0 3px 8px rgba(239, 68, 68, 0.35);
+        }
+        .btn-text { font-size: 1.05rem; text-shadow: 0 2px 3px rgba(0,0,0,0.5); }
+        .btn-shortcut {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.65);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-top: 1px;
+        }
+
+        /* FOOTER UPGRADES SECTION */
+        #upgrade-deck {
+            height: 125px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .upgrade-deck-title {
+            font-size: 0.8rem;
+            color: rgba(226, 232, 240, 0.55);
+            margin-bottom: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 3px;
+        }
+        .upgrades-container {
+            display: flex;
+            gap: 15px;
+            flex: 1;
+        }
+        .upgrade-card {
+            flex: 1;
+            background: rgba(10, 15, 30, 0.6);
+            border: 1px solid rgba(6, 182, 212, 0.1);
+            border-radius: 6px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s;
+        }
+        .upgrade-card:hover {
+            border-color: var(--border-hover);
+            background: rgba(10, 15, 30, 0.85);
+        }
+        .upg-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            max-width: 72%;
+        }
+        .upg-name { font-size: 0.78rem; font-weight: bold; color: #ffffff; }
+        .upg-desc { font-size: 0.65rem; color: rgba(226, 232, 240, 0.4); line-height: 1.25; }
+        .upg-level { font-family: var(--font-mono); font-size: 0.68rem; color: var(--neon-cyan); font-weight: bold; }
+        .upg-btn {
+            font-family: var(--font-cyber);
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #ffffff;
+            background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+            border: 1px solid #f59e0b;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(245, 158, 11, 0.2);
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            width: 85px;
+        }
+        .upg-btn:hover:not(:disabled) {
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+            filter: brightness(1.15);
+        }
+        .upg-btn:active:not(:disabled) { transform: translateY(1px); }
+        .upg-btn:disabled {
+            background: #334155;
+            border-color: #475569;
+            color: #64748b;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .upg-btn .cost { font-family: var(--font-mono); font-weight: bold; }
+
+        /* SCREEN OVERLAYS */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(3, 7, 18, 0.88);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .overlay-panel {
+            width: 550px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            backdrop-filter: blur(15px);
+            background: rgba(10, 15, 29, 0.85);
+        }
+        .overlay-panel.hazard-border {
+            border-color: var(--neon-red);
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.3), inset 0 0 20px rgba(239, 68, 68, 0.1);
+        }
+        .glow-title {
+            font-size: 1.65rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #ffffff;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+        }
+        .glow-title.text-red { color: var(--neon-red); text-shadow: var(--glow-red); }
+        .subtitle {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--neon-cyan);
+            letter-spacing: 2px;
+        }
+        .lore-box {
+            background: rgba(2, 6, 12, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            color: rgba(226, 232, 240, 0.75);
+        }
+        .lore-box strong { color: var(--neon-cyan); }
+        .lore-box p { margin-bottom: 6px; }
+        .lore-box ul { padding-left: 18px; margin-bottom: 6px; }
+
+        .instructions-grid {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+        .ins-card {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .ins-key {
+            background: #334155;
+            border: 1.5px solid #475569;
+            box-shadow: 0 3px 0 #1e293b;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            padding: 2px 10px;
+            font-size: 0.85rem;
+            color: #ffffff;
+            min-width: 30px;
+            text-align: center;
+        }
+        .ins-card p { font-size: 0.82rem; font-weight: bold; color: #ffffff; margin-top: 4px; }
+        .ins-note { font-size: 0.68rem; color: rgba(226, 232, 240, 0.4); }
+
+        .sound-consent {
+            font-size: 0.82rem;
+            color: rgba(226, 232, 240, 0.7);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sound-consent input { cursor: pointer; accent-color: var(--neon-cyan); }
+
+        .huge-glow-btn {
+            font-family: var(--font-cyber);
+            font-size: 1rem;
+            font-weight: 900;
+            color: #ffffff;
+            background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
+            border: 2px solid #22d3ee;
+            border-radius: 8px;
+            padding: 12px 28px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 15px rgba(6, 182, 212, 0.35);
+            transition: all 0.2s;
+        }
+        .huge-glow-btn:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 25px rgba(6, 182, 212, 0.6);
+            filter: brightness(1.15);
+        }
+        .huge-glow-btn:active { transform: translateY(2px); }
+        .huge-glow-btn.hazard-bg {
+            background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+            border-color: #f87171;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 15px rgba(239, 68, 68, 0.35);
+        }
+        .huge-glow-btn.hazard-bg:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 25px rgba(239, 68, 68, 0.6);
+        }
+
+        .results-stats {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(2, 6, 12, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-family: var(--font-mono);
+            text-align: left;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            padding-bottom: 5px;
+        }
+        .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .game-over-reason { font-size: 0.78rem; color: rgba(226, 232, 240, 0.5); line-height: 1.5; padding: 0 10px; }
+
+        /* RESPONSIVE SCALING FOR SHORTER VIEWPORTS */
+        @media (max-height: 720px) {
+            #top-bar { height: 48px; }
+            #stats-panel { width: 270px; }
+            #terminal-log { height: 100px; }
+            #hologram-screen { height: 125px; }
+            #hologram-wireframe { width: 85px; height: 85px; }
+            #control-buttons-deck { gap: 15px; }
+            .tactile-btn { width: 165px; height: 50px; }
+            .btn-text { font-size: 0.92rem; }
+            #upgrade-deck { height: 110px; }
+            .upgrade-card { padding: 4px 8px; }
+            .upg-desc { display: none; }
+        }
+    </style>
 </head>
 <body>
     <div id="cyber-bg"></div>
     <div id="scanline"></div>
 
     <div id="game-container">
-        <!-- TOP STATUS BAR -->
+        <!-- TOP HUD STATUS BAR -->
         <header id="top-bar">
             <div class="logo-area">
-                <span class="pulse-indicator green"></span>
+                <span class="pulse-indicator"></span>
                 <h1 id="main-title">FAB-36 ADVANCED PACKAGING</h1>
             </div>
             
-            <!-- Real-time Cleanroom Status -->
             <div class="cleanroom-status">
                 <span class="label">無塵室規格:</span>
                 <span id="cleanroom-value" class="value">ISO Class 100</span>
             </div>
 
-            <!-- Siren and Alarm Warning Beacons (Lives) -->
             <div class="stability-beacons">
-                <span class="label">系統穩定度:</span>
+                <span>系統穩定度:</span>
                 <div class="beacons-wrapper">
                     <div id="beacon-1" class="beacon active"></div>
                     <div id="beacon-2" class="beacon active"></div>
@@ -40,9 +828,9 @@
             </div>
         </header>
 
-        <!-- MAIN DASHBOARD -->
+        <!-- MAIN ASSEMBLY CONSOLE -->
         <main id="main-deck">
-            <!-- LEFT PANEL: STATS & LOGS -->
+            <!-- LEFT PANEL: DATA MEASUREMENT & EVENTS -->
             <section class="deck-panel" id="stats-panel">
                 <h2 class="panel-title">產線監控儀表板</h2>
                 
@@ -56,7 +844,7 @@
                         <div class="metric-progress-bar">
                             <div id="yield-progress" class="bar bg-green" style="width: 100%"></div>
                         </div>
-                        <span class="metric-sub">最低要求臨界值: 60.0%</span>
+                        <span class="metric-sub">最低安全臨界值: 60.0%</span>
                     </div>
 
                     <div class="metric-card" id="metric-uph">
@@ -90,39 +878,40 @@
                     </div>
                 </div>
 
-                <!-- Industrial Event Log Terminal -->
+                <!-- Live industrial terminal logs -->
                 <div id="terminal-log">
                     <div class="terminal-header">
                         <span>SYSTEM EVENT FEED</span>
-                        <span id="system-time">15:37:01</span>
+                        <span id="system-time">16:46:02</span>
                     </div>
                     <div id="terminal-body">
-                        <p class="text-dim">[SYSTEM] FAB-36 Advanced Yield Classifier initialized.</p>
+                        <p class="text-dim">[SYSTEM] FAB-36 Advanced Yield Sorter initialized.</p>
                         <p class="text-dim">[SYSTEM] Substrate Reflow Oven: 260°C stable.</p>
                         <p class="text-cyan">[SYSTEM] Waiting for wafer sorting queue...</p>
                     </div>
                 </div>
             </section>
 
-            <!-- CENTER/RIGHT PANEL: ACTIVE ASSEMBLY ZONE -->
+            <!-- RIGHT PANEL: ACTIVE CANVAS WORKSPACE -->
             <section class="deck-panel" id="assembly-panel">
                 <div class="assembly-header">
                     <h2 class="panel-title">AOI 光學自動檢測區 & 3D 封裝線</h2>
-                    <div class="controls-hint">操作提示: 鍵盤 ← / A 鍵良品裝配 | → / D 鍵瑕疵剔除</div>
+                    <div class="controls-hint">操作提示: A / ← 鍵良品裝配 | D / → 鍵瑕疵剔除</div>
                 </div>
 
-                <!-- HOLOGRAPHIC AOI SCANNER SCREEN -->
+                <!-- HOLO AOI DIAGNOSTIC DISPLAY -->
                 <div id="hologram-screen">
                     <div class="hologram-grid-bg"></div>
                     <div class="scan-laser-line"></div>
                     
                     <div class="hologram-viewport">
-                        <!-- Holographic wireframe model of the chip currently in scanner -->
+                        <!-- Holographic X-Ray scanner path -->
                         <div id="hologram-wireframe">
                             <svg viewBox="0 0 200 200" id="holo-svg">
-                                <!-- Silicon Die Base Grid -->
+                                <!-- Base die boundary -->
                                 <rect x="30" y="30" width="140" height="140" rx="10" fill="none" stroke="rgba(6, 182, 212, 0.4)" stroke-dasharray="4 4" stroke-width="1.5"></rect>
-                                <!-- Internal Interconnect Matrix -->
+                                
+                                <!-- Core matrices -->
                                 <circle cx="50" cy="50" r="4" fill="none" stroke="rgba(6, 182, 212, 0.5)" stroke-width="1"></circle>
                                 <circle cx="100" cy="50" r="4" fill="none" stroke="rgba(6, 182, 212, 0.5)" stroke-width="1"></circle>
                                 <circle cx="150" cy="50" r="4" fill="none" stroke="rgba(6, 182, 212, 0.5)" stroke-width="1"></circle>
@@ -140,67 +929,39 @@
                                 <line x1="100" y1="50" x2="100" y2="150" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1"></line>
                                 <line x1="150" y1="50" x2="150" y2="150" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1"></line>
 
-                                <!-- Hologram scan beam overlays -->
-                                <path id="holo-defect-path" d="" fill="none" stroke="rgba(239, 68, 68, 0.8)" stroke-width="2.5" class="pulsing"></path>
+                                <!-- Hologram defect X-Ray wireframe paths -->
+                                <path id="holo-defect-path" d="" fill="none" stroke="rgba(239, 68, 68, 0.85)" stroke-width="2.5" class="pulsing"></path>
                             </svg>
                         </div>
                         
-                        <!-- Diagnostic Readout -->
+                        <!-- Diagnostic parameters -->
                         <div class="hologram-readout">
-                            <div class="readout-row"><span class="readout-label">AOI ANALYSIS:</span> <span id="diag-analysis" class="text-cyan">SCANNING...</span></div>
-                            <div class="readout-row"><span class="readout-label">TEMP STABILITY:</span> <span class="text-green">260.4°C OK</span></div>
-                            <div class="readout-row"><span class="readout-label">CHIP ID:</span> <span id="diag-id" class="text-cyan">LOT-00000</span></div>
-                            <div class="readout-row"><span class="readout-label">DEFECT ESTIMATE:</span> <span id="diag-defect-rate" class="text-cyan">0.00%</span></div>
+                            <div class="readout-row"><span class="readout-label">AOI 分析診斷:</span> <span id="diag-analysis" class="text-cyan">SCANNING...</span></div>
+                            <div class="readout-row"><span class="readout-label">熱壓爐溫狀態:</span> <span class="text-green">260.4°C OK</span></div>
+                            <div class="readout-row"><span class="readout-label">晶圓批次編碼:</span> <span id="diag-id" class="text-cyan">LOT-00000</span></div>
+                            <div class="readout-row"><span class="readout-label">缺陷估值估計:</span> <span id="diag-defect-rate" class="text-cyan">0.00%</span></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- CONVEYOR BELT CONTAINER -->
-                <div id="conveyor-container">
-                    <!-- Top suction chamber entry -->
-                    <div class="suction-chamber-entrance">
-                        <div class="vacuum-glowing-glow"></div>
-                        <span class="chamber-tag">3D PACKAGING CHAMBER</span>
-                    </div>
-
-                    <!-- The Conveyor Belt Graphic -->
-                    <div class="conveyor-belt-track">
-                        <div class="belt-rollers">
-                            <div class="roller"></div>
-                            <div class="roller"></div>
-                            <div class="roller"></div>
-                            <div class="roller"></div>
-                            <div class="roller"></div>
-                            <div class="roller"></div>
-                            <div class="roller"></div>
-                            <div class="roller"></div>
-                        </div>
-                        
-                        <!-- Belt scanning gate marking -->
-                        <div class="laser-scanner-overlay-gate"></div>
-
-                        <!-- Active chips wrapper -->
-                        <div id="chips-conveyor-belt">
-                            <!-- Dynamically generated chips go here -->
-                        </div>
-                    </div>
-
-                    <!-- Bottom Scrap Hopper entrance -->
-                    <div class="scrap-hopper-entrance">
-                        <div class="scrap-glowing-glow"></div>
-                        <span class="chamber-tag">RECYCLE & SCRAP HOPPER</span>
-                    </div>
+                <!-- HTML5 CANVAS STAGE CONTAINER -->
+                <div id="stage-container">
+                    <div class="suction-tag">3D PACKAGING VACUUM SUCTION</div>
+                    
+                    <canvas id="game-canvas"></canvas>
+                    
+                    <div class="scrap-tag">AUTOMATED RECYCLE SCRAP BIN</div>
                 </div>
 
-                <!-- DIRECT ACTION BUTTONS (Tactile feedback) -->
+                <!-- DIRECT ACTION BUTTON DECK -->
                 <div id="control-buttons-deck">
-                    <button id="btn-pass" class="tactile-btn pass-btn" title="判定晶片為良品，送入3D堆疊製程 (快捷鍵: ← / A)">
+                    <button id="btn-pass" class="tactile-btn pass-btn" title="良品裝配封裝 (← / A)">
                         <div class="btn-cap">
                             <span class="btn-shortcut">← A</span>
                             <span class="btn-text">良品封裝</span>
                         </div>
                     </button>
-                    <button id="btn-reject" class="tactile-btn reject-btn" title="判定晶片有瑕疵，進行廢料隔離 (快捷鍵: → / D)">
+                    <button id="btn-reject" class="tactile-btn reject-btn" title="排除瑕疵剔除 (D / →)">
                         <div class="btn-cap">
                             <span class="btn-text">瑕疵剔除</span>
                             <span class="btn-shortcut">D →</span>
@@ -210,15 +971,14 @@
             </section>
         </main>
 
-        <!-- UPGRADE & LAB MANAGEMENT DECK -->
+        <!-- LAB TECHNOLOGY UPGRADES -->
         <footer id="upgrade-deck">
             <h3 class="upgrade-deck-title">產線升級與技術研發中心</h3>
             <div class="upgrades-container">
-                <!-- Upgrade Item 1 -->
                 <div class="upgrade-card" id="upg-aoi">
                     <div class="upg-details">
-                        <span class="upg-name">AI 輔助標記系統 (AOI+)</span>
-                        <p class="upg-desc">升級 AI 分析元件，在晶片上以紅色標記圈出缺陷位置，降低辨識難度。</p>
+                        <span class="upg-name">AI 智慧缺陷輔助 (AOI+)</span>
+                        <p class="upg-desc">利用 AI 輔助光學，在 Canvas 上直接以雷達紅圈標記出瑕疵晶片位置。</p>
                         <span class="upg-level" id="upg-aoi-level">Lv 0 / 3</span>
                     </div>
                     <button class="upg-btn" id="btn-upg-aoi" disabled>
@@ -226,11 +986,10 @@
                     </button>
                 </div>
 
-                <!-- Upgrade Item 2 -->
                 <div class="upgrade-card" id="upg-clean">
                     <div class="upg-details">
-                        <span class="upg-name">高階防靜電無塵室</span>
-                        <p class="upg-desc">升級過濾系統與工作人員防塵服，大幅降低晶片出現「粉塵污染」的機率。</p>
+                        <span class="upg-name">高等級空氣層流淨化</span>
+                        <p class="upg-desc">升級無塵室空氣過濾系統，大幅降低「微塵污染」瑕疵品的產生機率。</p>
                         <span class="upg-level" id="upg-clean-level">Lv 0 / 3</span>
                     </div>
                     <button class="upg-btn" id="btn-upg-clean" disabled>
@@ -238,11 +997,10 @@
                     </button>
                 </div>
 
-                <!-- Upgrade Item 3 -->
                 <div class="upgrade-card" id="upg-belt">
                     <div class="upg-details">
-                        <span class="upg-name">高阻尼無級變速器</span>
-                        <p class="upg-desc">安裝阻尼馬達，降低輸送帶加速幅度，增加玩家反應時間。</p>
+                        <span class="upg-name">減震無級防偏感應器</span>
+                        <p class="upg-desc">裝配阻尼減震感應，降低隨著分數提高時輸送帶加速的幅度。</p>
                         <span class="upg-level" id="upg-belt-level">Lv 0 / 3</span>
                     </div>
                     <button class="upg-btn" id="btn-upg-belt" disabled>
@@ -253,81 +1011,22 @@
         </footer>
     </div>
 
-    <!-- SCREENS AND OVERLAYS -->
-    <!-- BOOT SYSTEM OVERLAY -->
-    <div id="boot-screen" class="overlay active">
-        <div class="overlay-panel glass">
-            <h2 class="glow-title">FAB-36 SECURE TERMINAL</h2>
-            <p class="subtitle">ADVANCED YIELD OPTIMIZATION DECK</p>
-            
-            <div class="boot-logo-wrapper">
-                <svg viewBox="0 0 100 100" id="boot-svg" style="width: 120px; height: 120px; filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.6)); margin: 10px 0;">
-                    <!-- Concentric tech circles -->
-                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(6, 182, 212, 0.2)" stroke-width="1.5"></circle>
-                    <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(6, 182, 212, 0.4)" stroke-dasharray="8 6" stroke-width="2" style="animation: spin 15s infinite linear; transform-origin: 50% 50%;"></circle>
-                    <!-- Wafer Grid / Silicon Die representation -->
-                    <rect x="36" y="36" width="28" height="28" rx="4" fill="rgba(6, 182, 212, 0.05)" stroke="var(--neon-cyan)" stroke-width="2"></rect>
-                    <line x1="36" y1="43" x2="64" y2="43" stroke="var(--neon-cyan)" stroke-width="1"></line>
-                    <line x1="36" y1="50" x2="64" y2="50" stroke="var(--neon-cyan)" stroke-width="1"></line>
-                    <line x1="36" y1="57" x2="64" y2="57" stroke="var(--neon-cyan)" stroke-width="1"></line>
-                    <line x1="43" y1="36" x2="43" y2="64" stroke="var(--neon-cyan)" stroke-width="1"></line>
-                    <line x1="50" y1="36" x2="50" y2="64" stroke="var(--neon-cyan)" stroke-width="1"></line>
-                    <line x1="57" y1="36" x2="57" y2="64" stroke="var(--neon-cyan)" stroke-width="1"></line>
-                </svg>
-            </div>
-            
-            <p class="system-status-msg text-cyan font-mono" style="font-size: 0.8rem; margin: 10px 0;">[SYSTEM STATUS: SECURITY FIREWALL INTACT. PRESS INITIALIZE]</p>
-            <button id="btn-boot-system" class="huge-glow-btn">初始化產線系統 (BOOT SYSTEM)</button>
-        </div>
-    </div>
-
-    <!-- STAR WARS STYLE INTRO OVERLAY -->
-    <div id="intro-screen" class="overlay" style="background: #000; overflow: hidden;">
-        <div class="intro-container">
-            <!-- Long time ago... text -->
-            <div id="intro-far-away" class="intro-text-blue">
-                很久很久以前，在一個非常潔淨的無塵室裡……
-            </div>
-            
-            <!-- Zooming yellow logo -->
-            <div id="intro-logo" class="intro-logo-yellow">
-                先進封裝<br>良率分類機
-            </div>
-
-            <!-- Crawl perspective container -->
-            <div id="intro-crawl-container" class="intro-crawl-wrapper">
-                <div id="intro-crawl-content" class="intro-crawl-text">
-                    <h3 class="episode-number">第一部曲：幽靈微塵的威脅</h3>
-                    <h4 class="episode-title">良率保衛戰</h4>
-                    
-                    <p>這是一個奈米微縮的極限時代。</p>
-                    <p>傳統的摩爾定律已面臨嚴苛物理極限，晶體管無法再無限制地縮小，微縮之路步步維艱。</p>
-                    <p>為了拯救半導體效能的未來，帝國研發出了極致的「3D垂直堆疊先進封裝技術」，將多顆晶粒像蓋摩天大樓般緊密連結！</p>
-                    <p>然而，黑暗的瑕疵勢力悄然無息地滲透進了傳送帶。微裂紋、環境塵埃、凸塊短路與對位偏差，正威脅著極度昂貴的晶圓良率。</p>
-                    <p>作為 FAB-36 的首席工程師，你手握先進的光學 AOI 雷射掃描儀。你必須精確判定完美晶粒，並在時限內將致命瑕疵排除，引領半導體科技走向良率滿分的光明未來……</p>
-                </div>
-            </div>
-
-            <!-- Skip Button -->
-            <button id="btn-skip-intro" class="skip-intro-btn">跳過簡報 (SKIP INTRO)</button>
-        </div>
-    </div>
-
-    <!-- START / INSTRUCTIONS OVERLAY -->
-    <div id="start-screen" class="overlay">
-        <div class="overlay-panel glass">
+    <!-- SCREENS OVERLAYS -->
+    <!-- START GAME SYSTEM -->
+    <div id="start-screen" class="overlay active">
+        <div class="overlay-panel">
             <h2 class="glow-title">先進封裝良率分類機</h2>
-            <p class="subtitle">ADVANCED PACKAGING YIELD CLASSIFIER v1.0.0</p>
+            <p class="subtitle">FAB-36 CONVEYOR INSPECTION SYSTEM v1.0.0</p>
             
             <div class="lore-box">
-                <p><strong>任務簡報：</strong></p>
-                <p>隨著晶片微縮技術逼近物理極限，<strong>「先進封裝（Advanced Packaging）」</strong>已成為半導體製造的關鍵戰場。</p>
-                <p>您已被任命為 <strong>FAB-36 的首席產線工程師</strong>。請在輸送帶上快速辨識隨機出現的晶片良率：</p>
+                <p><strong>無塵室生產任務說明：</strong></p>
+                <p>摩爾定律走向盡頭，<strong>「先進封裝（Advanced Packaging）」</strong>成為晶片效能突破的最前線！</p>
+                <p>在高速傳送帶上，會源源不絕出現<strong>完美晶粒（藍色）</strong>與各種<strong>瑕疵晶粒（紅色）</strong>：</p>
                 <ul>
-                    <li>將<strong>完美晶片（電路完整、晶粒對齊）</strong>送入 <strong>3D 封裝</strong>。</li>
-                    <li>將<strong>瑕疵晶片（微裂痕、粉塵污染、偏差或短路）</strong>予以<strong>剔除</strong>。</li>
+                    <li>看見<strong>完美晶粒</strong>時：按下 <strong>A 鍵 / 左方向鍵</strong>，或點選良品，送入 3D 堆疊封裝。</li>
+                    <li>看見<strong>瑕疵晶粒</strong>時：按下 <strong>D 鍵 / 右方向鍵</strong>，或點選瑕疵，撥入廢料回收桶。</li>
                 </ul>
-                <p>一旦將瑕疵品混入 3D 封裝，或將完美良品誤剔除，皆會造成昂貴的<strong>良率損失</strong>！</p>
+                <p>瑕疵品若不慎混入 3D 封裝，或將完美良品誤剔除，都會造成<strong>產線良率下降</strong>。良率<strong>低於 60%</strong> 會造成產線強制停機！</p>
             </div>
 
             <div class="instructions-grid">
@@ -341,11 +1040,10 @@
                     <span class="ins-key">D</span>
                     <span class="ins-key">→</span>
                     <p>瑕疵剔除</p>
-                    <span class="ins-note">微裂痕 / 粉塵 / 對位偏差 / 短路</span>
+                    <span class="ins-note">微裂紋 / 微塵 / 歪斜 / 短路</span>
                 </div>
             </div>
 
-            <!-- Start sound selection for user compatibility -->
             <div class="sound-consent">
                 <label>
                     <input type="checkbox" id="sound-enabled" checked>
@@ -357,15 +1055,15 @@
         </div>
     </div>
 
-    <!-- GAME OVER / RESTRUCTURING OVERLAY -->
+    <!-- GAME OVER SYSTEM -->
     <div id="game-over-screen" class="overlay">
-        <div class="overlay-panel glass hazard-border">
+        <div class="overlay-panel hazard-border">
             <h2 class="glow-title text-red">產線停機整頓</h2>
-            <p class="subtitle">FAB-36 SHUT DOWN: POOR YIELD RATE</p>
+            <p class="subtitle">FAB-36 SHUT DOWN: LOW YIELD RATE ALERT</p>
 
             <div class="results-stats">
                 <div class="stat-row">
-                    <span>最終產量 (Total Packaged):</span>
+                    <span>最終累計產量 (Total Score):</span>
                     <span id="final-score" class="text-gold">0 dies</span>
                 </div>
                 <div class="stat-row">
@@ -373,11 +1071,11 @@
                     <span id="final-yield" class="text-green">100%</span>
                 </div>
                 <div class="stat-row">
-                    <span>總缺陷漏檢 (Missed Defect):</span>
+                    <span>嚴重漏檢瑕疵 (Missed Defects):</span>
                     <span id="final-misses" class="text-red">0 pcs</span>
                 </div>
                 <div class="stat-row">
-                    <span>技術升級等級 (Upgrades):</span>
+                    <span>產線設備升級 (Tech Level):</span>
                     <span id="final-upgrades">AI Lv0 / Cleanroom Lv0 / Belt Lv0</span>
                 </div>
             </div>
@@ -390,7 +1088,1059 @@
         </div>
     </div>
 
-    <!-- AUDIO GENERATION INFO & HELPER -->
-    <script src="game.js"></script>
+    <!-- CORE JAVASCRIPT LOGIC -->
+    <script>
+        class AdvancedPackagingGame {
+            constructor() {
+                // Game States
+                this.score = 0;
+                this.perfectCount = 0;
+                this.funds = 0;
+                this.totalProcessed = 0;
+                this.totalCorrect = 0;
+                this.yieldRate = 100.0;
+                this.stabilityBeacons = 3;
+                
+                // Upgrades
+                this.aoiLevel = 0;
+                this.cleanroomLevel = 0;
+                this.beltLevel = 0;
+
+                this.upgradeCosts = {
+                    aoi: [150, 300, 500],
+                    clean: [250, 450, 750],
+                    belt: [200, 350, 600]
+                };
+
+                this.isPlaying = false;
+                this.chips = [];
+                this.chipIdCounter = 10000;
+                
+                this.lastSpawnTime = 0;
+                this.spawnInterval = 2500; // ms between chip spawns
+                this.baseSpeed = 2.0; 
+                this.speedMultiplier = 1.0;
+
+                // Web Audio synth
+                this.audioCtx = null;
+                this.audioEnabled = true;
+
+                // Canvas setup
+                this.canvas = document.getElementById('game-canvas');
+                this.gl = this.canvas.getContext('2d');
+                this.canvasWidth = 0;
+                this.canvasHeight = 0;
+                
+                // Particles / Visual effects
+                this.particles = [];
+
+                // Bindings
+                this.update = this.update.bind(this);
+                this.handleKeyDown = this.handleKeyDown.bind(this);
+                
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            resizeCanvas() {
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvasWidth = this.canvas.width = rect.width;
+                this.canvasHeight = this.canvas.height = rect.height;
+            }
+
+            initAudio() {
+                if (!this.audioCtx && this.audioEnabled) {
+                    try {
+                        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    } catch (e) {
+                        console.warn("Audio Context init error", e);
+                    }
+                }
+            }
+
+            // SYNTHESIZE AUDIO SFX - Pneumatic vacuum stacker (PASS)
+            playPassSound() {
+                if (!this.audioCtx) return;
+                const ctx = this.audioCtx;
+                const now = ctx.currentTime;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.exponentialRampToValueAtTime(1400, now + 0.28);
+                
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.28);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.28);
+
+                // Quick chime chord
+                const chime = ctx.createOscillator();
+                const chimeGain = ctx.createGain();
+                chime.type = 'sine';
+                chime.frequency.setValueAtTime(987.77, now + 0.08); // B5
+                chimeGain.gain.setValueAtTime(0, now);
+                chimeGain.gain.linearRampToValueAtTime(0.08, now + 0.08);
+                chimeGain.gain.linearRampToValueAtTime(0.001, now + 0.32);
+                chime.connect(chimeGain);
+                chimeGain.connect(ctx.destination);
+                chime.start(now);
+                chime.stop(now + 0.32);
+            }
+
+            // SYNTHESIZE AUDIO SFX - Hydraulic Scrap Ejecter (REJECT)
+            playRejectSound() {
+                if (!this.audioCtx) return;
+                const ctx = this.audioCtx;
+                const now = ctx.currentTime;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.linearRampToValueAtTime(65, now + 0.22);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+
+                // Spark white noise splash
+                const bufferSize = ctx.sampleRate * 0.12;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for(let i=0; i<bufferSize; i++) data[i] = Math.random()*2 - 1;
+
+                const noiseNode = ctx.createBufferSource();
+                noiseNode.buffer = buffer;
+                const noiseGain = ctx.createGain();
+                noiseGain.gain.setValueAtTime(0.06, now);
+                noiseGain.gain.linearRampToValueAtTime(0.001, now + 0.12);
+                noiseNode.connect(noiseGain);
+                noiseGain.connect(ctx.destination);
+                noiseNode.start(now);
+                noiseNode.stop(now + 0.12);
+            }
+
+            // SYNTHESIZE AUDIO SFX - Siren Warning Beacons (ERROR)
+            playErrorSound() {
+                if (!this.audioCtx) return;
+                const ctx = this.audioCtx;
+                const now = ctx.currentTime;
+
+                const osc1 = ctx.createOscillator();
+                const osc2 = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc1.type = 'sawtooth';
+                osc2.type = 'sine';
+
+                osc1.frequency.setValueAtTime(360, now);
+                osc1.frequency.linearRampToValueAtTime(240, now + 0.15);
+                osc1.frequency.linearRampToValueAtTime(360, now + 0.3);
+                osc1.frequency.linearRampToValueAtTime(240, now + 0.45);
+
+                osc2.frequency.setValueAtTime(365, now);
+                osc2.frequency.linearRampToValueAtTime(245, now + 0.15);
+                osc2.frequency.linearRampToValueAtTime(365, now + 0.3);
+                osc2.frequency.linearRampToValueAtTime(245, now + 0.45);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.35);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.5);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.5);
+                osc2.stop(now + 0.5);
+            }
+
+            // SYNTHESIZE AUDIO SFX - Radar Scanner Chirp (AOI scan)
+            playScanSound() {
+                if (!this.audioCtx) return;
+                const ctx = this.audioCtx;
+                const now = ctx.currentTime;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1400, now);
+                osc.frequency.exponentialRampToValueAtTime(1900, now + 0.08);
+
+                gain.gain.setValueAtTime(0.02, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+
+            // SYNTHESIZE AUDIO SFX - Research upgrade chord
+            playUpgradeSound() {
+                if (!this.audioCtx) return;
+                const ctx = this.audioCtx;
+                const now = ctx.currentTime;
+                const freqs = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5 arpeggio
+
+                freqs.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx*0.08);
+
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.06, now + idx*0.08 + 0.02);
+                    gain.gain.linearRampToValueAtTime(0.001, now + idx*0.08 + 0.28);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + idx*0.08);
+                    osc.stop(now + idx*0.08 + 0.28);
+                });
+            }
+
+            // START GAME
+            startGame() {
+                this.initAudio();
+
+                this.score = 0;
+                this.perfectCount = 0;
+                this.funds = 0;
+                this.totalProcessed = 0;
+                this.totalCorrect = 0;
+                this.yieldRate = 100.0;
+                this.stabilityBeacons = 3;
+                
+                this.aoiLevel = 0;
+                this.cleanroomLevel = 0;
+                this.beltLevel = 0;
+
+                this.updateStatsUI();
+                this.updateUpgradeButtons();
+                this.resetBeacons();
+
+                this.chips = [];
+                this.particles = [];
+                
+                this.speedMultiplier = 1.0;
+                this.spawnInterval = 2500;
+                this.lastSpawnTime = performance.now();
+
+                this.clearTerminal();
+                this.logToTerminal("[SYSTEM] ADVANCED ASSEMBLY LINE ONLINE.", "text-green");
+                this.logToTerminal(`[SYSTEM] Cleanroom filters: Standard Class 100.`, "text-dim");
+
+                document.getElementById('start-screen').classList.remove('active');
+                document.getElementById('game-over-screen').classList.remove('active');
+
+                this.isPlaying = true;
+                this.gameLoopId = requestAnimationFrame(this.update);
+                
+                window.addEventListener('keydown', this.handleKeyDown);
+
+                document.getElementById('diag-analysis').textContent = 'STANDBY';
+                document.getElementById('diag-analysis').className = 'text-green';
+                document.getElementById('diag-defect-rate').textContent = '0.00%';
+                this.clearHoloWireframe();
+            }
+
+            // STOP GAME
+            stopGame(reason = "yield") {
+                this.isPlaying = false;
+                cancelAnimationFrame(this.gameLoopId);
+                window.removeEventListener('keydown', this.handleKeyDown);
+
+                document.getElementById('final-score').textContent = `${this.score} dies`;
+                document.getElementById('final-yield').textContent = `${this.yieldRate.toFixed(1)}%`;
+                
+                const missedCount = this.totalProcessed - this.totalCorrect;
+                document.getElementById('final-misses').textContent = `${missedCount} pcs`;
+                document.getElementById('final-upgrades').textContent = `AI Lv${this.aoiLevel} / Cleanroom Lv${this.cleanroomLevel} / Belt Lv${this.beltLevel}`;
+
+                const reasonText = document.getElementById('game-over-reason-text');
+                if (reason === "yield") {
+                    reasonText.innerHTML = `生產線因為<strong>綜合良率過低（低於安全臨界值 60.0%）</strong>，被廠區高階中控系統強制關閉。晶圓先進封裝良品控制不力，導致製程損失極大！`;
+                } else {
+                    reasonText.innerHTML = `生產線因<strong>系統穩定度歸零（晶圓廠警報完全觸發）</strong>，防靜電氣閥與封裝模組鎖定。連續瑕疵漏檢導致熱壓焊接機受損，停機整頓！`;
+                }
+
+                document.getElementById('game-over-screen').classList.add('active');
+                this.playErrorSound();
+                this.logToTerminal(`[FATAL] PRODUCTION LINE HALTED. Reason: ${reason === "yield" ? "Low Yield" : "Severe Damage"}`, "text-red");
+            }
+
+            // GAME LOOP (Canvas animation tick)
+            update(timestamp) {
+                if (!this.isPlaying) return;
+
+                // Scale speed and spawning rates log-normally based on score
+                this.speedMultiplier = 1.0 + Math.log10(this.score + 1) * (0.85 - this.beltLevel * 0.2);
+                this.spawnInterval = Math.max(1000, 2500 - Math.log10(this.score + 1) * 850 + this.beltLevel * 180);
+
+                // Spawn check: chips enter from the RIGHT side of the canvas
+                const elapsed = timestamp - this.lastSpawnTime;
+                if (elapsed >= this.spawnInterval) {
+                    this.spawnChip();
+                    this.lastSpawnTime = timestamp;
+                }
+
+                // Core Physics & Update
+                this.gl.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+                // Draw Conveyor belt background structures
+                this.drawConveyorBeltStatic();
+
+                // Draw laser scanning overlay
+                const laserX = this.canvasWidth * 0.5;
+                const laserWidth = 90;
+                
+                // Scanner area glowing indicator
+                this.gl.fillStyle = 'rgba(6, 182, 212, 0.04)';
+                this.gl.fillRect(laserX - laserWidth*0.5, 0, laserWidth, this.canvasHeight);
+                this.gl.strokeStyle = 'rgba(6, 182, 212, 0.35)';
+                this.gl.lineWidth = 1.5;
+                this.gl.setLineDash([4, 4]);
+                this.gl.beginPath();
+                this.gl.moveTo(laserX - laserWidth*0.5, 0);
+                this.gl.lineTo(laserX - laserWidth*0.5, this.canvasHeight);
+                this.gl.moveTo(laserX + laserWidth*0.5, 0);
+                this.gl.lineTo(laserX + laserWidth*0.5, this.canvasHeight);
+                this.gl.stroke();
+                this.gl.setLineDash([]); // clear dash
+
+                // Update & Render active chips on Conveyor belt
+                const currentSpeed = this.baseSpeed * this.speedMultiplier;
+                let scannedChipThisFrame = null;
+
+                for (let i = this.chips.length - 1; i >= 0; i--) {
+                    const chip = this.chips[i];
+
+                    if (chip.isSorted) {
+                        // Sorted animation (vacuum suction upward OR scrap swept downward)
+                        if (chip.sortDirection === 'pass') {
+                            chip.y -= 7.5;
+                            chip.opacity -= 0.05;
+                        } else {
+                            chip.y += 7.5;
+                            chip.opacity -= 0.05;
+                            chip.rotation += 0.06;
+                        }
+
+                        if (chip.opacity <= 0) {
+                            this.chips.splice(i, 1);
+                            continue;
+                        }
+                    } else {
+                        // Move chip from right to left (by decreasing x)
+                        chip.x -= currentSpeed;
+
+                        // Check entering Scanning laser gate (center of canvas)
+                        if (chip.x + 35 >= laserX - laserWidth*0.5 && chip.x - 35 <= laserX + laserWidth*0.5) {
+                            if (!chip.isScanned) {
+                                chip.isScanned = true;
+                                this.playScanSound();
+                                this.updateHolographicScanner(chip);
+                            }
+                            scannedChipThisFrame = chip;
+                        }
+
+                        // Auto roll-off processing if chip exits on the LEFT (x < -50)
+                        if (chip.x <= -50) {
+                            this.chips.splice(i, 1);
+                            
+                            if (chip.type === 'perfect') {
+                                // Good chips roll off smoothly and package automatically!
+                                this.score++;
+                                this.funds += 10;
+                                this.totalProcessed++;
+                                this.totalCorrect++;
+                                this.logToTerminal(`[AUTO] Die #${chip.id} packaged successfully (Perfect yield).`, "text-dim");
+                                this.playPassSound();
+                                this.spawnSparkParticles(40, this.canvasHeight*0.5, '#10b981');
+                            } else {
+                                // Defective chip rolled into automatic packaging! CRASH!
+                                this.stabilityBeacons--;
+                                this.totalProcessed++;
+                                this.triggerBeaconAlarm();
+                                this.logToTerminal(`[CRITICAL] Defective chip #${chip.id} (${this.getDefectChineseName(chip.type)}) packaged! Stacking failure.`, "text-red");
+                                this.playErrorSound();
+                                this.spawnSparkParticles(40, this.canvasHeight*0.5, '#ef4444');
+                            }
+                            
+                            this.updateStatsUI();
+                            this.checkGameOverConditions();
+                            continue;
+                        }
+                    }
+
+                    // Render current chip block on Canvas
+                    this.drawChipOnCanvas(chip);
+                }
+
+                // Holographic terminal ticks
+                this.tickHolographicReadout(scannedChipThisFrame);
+
+                // Update & Render active particles (sparks)
+                this.drawAndUpdateParticles();
+
+                // Loop next frame
+                if (this.isPlaying) {
+                    this.gameLoopId = requestAnimationFrame(this.update);
+                }
+            }
+
+            // CANVAS GRAPHICS - STATIC BELT
+            drawConveyorBeltStatic() {
+                const cy = this.canvasHeight * 0.5;
+                const h = 76; // Belt height
+
+                // Track rail
+                this.gl.fillStyle = '#111827';
+                this.gl.fillRect(0, cy - h*0.5, this.canvasWidth, h);
+                this.gl.strokeStyle = '#374151';
+                this.gl.lineWidth = 3.5;
+                this.gl.strokeRect(-2, cy - h*0.5, this.canvasWidth + 4, h);
+
+                // Rollers gears
+                this.gl.fillStyle = '#1f2937';
+                this.gl.strokeStyle = '#4b5563';
+                this.gl.lineWidth = 2.5;
+
+                const rollerSpacing = 80;
+                // Move rollers slightly to simulate belt rotation
+                const offset = (performance.now() * 0.08 * this.speedMultiplier) % rollerSpacing;
+
+                for (let rx = -offset; rx < this.canvasWidth + rollerSpacing; rx += rollerSpacing) {
+                    this.gl.beginPath();
+                    this.gl.arc(rx, cy, 7, 0, Math.PI*2);
+                    this.gl.fill();
+                    this.gl.stroke();
+
+                    // Gear notches
+                    this.gl.beginPath();
+                    this.gl.moveTo(rx - 10, cy);
+                    this.gl.lineTo(rx + 10, cy);
+                    this.gl.moveTo(rx, cy - 10);
+                    this.gl.lineTo(rx, cy + 10);
+                    this.gl.stroke();
+                }
+            }
+
+            // CANVAS GRAPHICS - VECTOR CHIP DRAWING
+            drawChipOnCanvas(chip) {
+                const cy = chip.y;
+                const cx = chip.x;
+                const size = 66;
+
+                this.gl.save();
+                this.gl.translate(cx, cy);
+                this.gl.rotate(chip.rotation);
+                this.gl.globalAlpha = chip.opacity;
+
+                // 1. Draw base substrate (Green PCB)
+                this.gl.fillStyle = '#0e2b1f';
+                this.gl.strokeStyle = chip.isScanned ? 'var(--neon-cyan)' : '#475569';
+                this.gl.lineWidth = chip.isScanned ? 2.5 : 2;
+                
+                // Add glowing glow shadow if highlighted
+                if (chip.isScanned) {
+                    this.gl.shadowColor = 'rgba(6, 182, 212, 0.5)';
+                    this.gl.shadowBlur = 10;
+                }
+
+                this.gl.beginPath();
+                this.gl.roundRect(-size*0.5, -size*0.5, size, size, 6);
+                this.gl.fill();
+                this.gl.stroke();
+
+                // Clear shadow for internal layers
+                this.gl.shadowBlur = 0;
+
+                // 2. PCB Gold circuits traces
+                this.gl.strokeStyle = '#1e6b4e';
+                this.gl.lineWidth = 1;
+                this.gl.beginPath();
+                this.gl.moveTo(-size*0.4, -size*0.4);
+                this.gl.lineTo(size*0.4, size*0.4);
+                this.gl.moveTo(size*0.4, -size*0.4);
+                this.gl.lineTo(-size*0.4, size*0.4);
+                this.gl.stroke();
+
+                // 3. Silicon Die core block
+                const dieSize = 36;
+                // Misaligned defect shifts the silicon die!
+                let dx = 0;
+                let dy = 0;
+                let dieRot = 0;
+                if (chip.type === 'defect-misaligned') {
+                    dx = 3;
+                    dy = 2;
+                    dieRot = 0.12; // tilted die crooked
+                }
+
+                this.gl.save();
+                this.gl.translate(dx, dy);
+                this.gl.rotate(dieRot);
+
+                // Silicon die look: dark metallic
+                const dieGrad = this.gl.createLinearGradient(-dieSize*0.5, -dieSize*0.5, dieSize*0.5, dieSize*0.5);
+                
+                if (chip.type === 'perfect') {
+                    // Perfect chips: High-tech cobalt blue silicon block
+                    dieGrad.addColorStop(0, '#1e3a8a');
+                    dieGrad.addColorStop(1, '#0f172a');
+                    this.gl.strokeStyle = '#3b82f6';
+                } else {
+                    // Defective chips: Warning alert hazard red/dark red block
+                    dieGrad.addColorStop(0, '#ef4444');
+                    dieGrad.addColorStop(1, '#1e0505');
+                    this.gl.strokeStyle = '#b91c1c';
+                }
+
+                this.gl.fillStyle = dieGrad;
+                this.gl.lineWidth = 1.5;
+                this.gl.beginPath();
+                this.gl.roundRect(-dieSize*0.5, -dieSize*0.5, dieSize, dieSize, 3);
+                this.gl.fill();
+                this.gl.stroke();
+
+                // Gold pads bumps on core die
+                this.gl.fillStyle = '#f59e0b';
+                this.gl.beginPath();
+                this.gl.arc(-dieSize*0.35, -dieSize*0.35, 2.5, 0, Math.PI*2);
+                this.gl.arc(dieSize*0.35, -dieSize*0.35, 2.5, 0, Math.PI*2);
+                this.gl.arc(-dieSize*0.35, dieSize*0.35, 2.5, 0, Math.PI*2);
+                this.gl.arc(dieSize*0.35, dieSize*0.35, 2.5, 0, Math.PI*2);
+                this.gl.fill();
+
+                // 4. DRAW SPECIFIC DEFECTS VISUALLY ON CANVAS CHIP
+                if (chip.type === 'defect-crack') {
+                    // Draw red cracked jagged lightning lines on core substrate
+                    this.gl.strokeStyle = '#ef4444';
+                    this.gl.lineWidth = 2.5;
+                    this.gl.beginPath();
+                    this.gl.moveTo(-size*0.4, -size*0.1);
+                    this.gl.lineTo(-size*0.15, size*0.1);
+                    this.gl.lineTo(-size*0.3, size*0.35);
+                    this.gl.stroke();
+                } 
+                else if (chip.type === 'defect-particles') {
+                    // Draw tiny yellow dust particles on core
+                    this.gl.fillStyle = '#fef08a';
+                    this.gl.shadowColor = '#eab308';
+                    this.gl.shadowBlur = 4;
+                    
+                    this.gl.beginPath();
+                    this.gl.arc(-10, -5, 2, 0, Math.PI*2);
+                    this.gl.arc(8, 12, 2.2, 0, Math.PI*2);
+                    this.gl.arc(-2, 10, 1.8, 0, Math.PI*2);
+                    this.gl.fill();
+                    
+                    this.gl.shadowBlur = 0; // clear
+                }
+                else if (chip.type === 'defect-bridge') {
+                    // Solder short circuit bridge on the microbumps at bottom
+                    this.gl.fillStyle = '#a1a1aa';
+                    this.gl.strokeStyle = '#ffffff';
+                    this.gl.lineWidth = 1;
+                    
+                    this.gl.beginPath();
+                    this.gl.roundRect(-size*0.25, size*0.32, size*0.5, 5, 1.5);
+                    this.gl.fill();
+                    this.gl.stroke();
+                }
+                else if (chip.type === 'perfect') {
+                    // Perfect chips feature a green glowing diagnostic LED
+                    this.gl.fillStyle = 'var(--neon-green)';
+                    this.gl.shadowColor = 'var(--neon-green)';
+                    this.gl.shadowBlur = 6;
+                    this.gl.beginPath();
+                    this.gl.arc(-size*0.34, -size*0.34, 3, 0, Math.PI*2);
+                    this.gl.fill();
+                    this.gl.shadowBlur = 0;
+                }
+
+                this.gl.restore(); // Restore die rotation
+
+                // AI Assist HUD indicator sight (Level 3 AOI+)
+                if (this.aoiLevel >= 3 && chip.type !== 'perfect') {
+                    this.gl.strokeStyle = 'rgba(239, 68, 68, 0.75)';
+                    this.gl.lineWidth = 1.5;
+                    this.gl.setLineDash([3, 3]);
+                    this.gl.beginPath();
+                    // Draw spinning target sight
+                    const rotationOffset = (performance.now() * 0.002) % (Math.PI * 2);
+                    this.gl.arc(0, 0, size*0.65, rotationOffset, rotationOffset + Math.PI*2);
+                    this.gl.stroke();
+                    this.gl.setLineDash([]);
+                    
+                    // Crosshairs
+                    this.gl.strokeStyle = '#ef4444';
+                    this.gl.lineWidth = 1;
+                    this.gl.beginPath();
+                    this.gl.moveTo(-size*0.75, 0); this.gl.lineTo(-size*0.58, 0);
+                    this.gl.moveTo(size*0.58, 0); this.gl.lineTo(size*0.75, 0);
+                    this.gl.moveTo(0, -size*0.75); this.gl.lineTo(0, -size*0.58);
+                    this.gl.moveTo(0, size*0.58); this.gl.lineTo(0, size*0.75);
+                    this.gl.stroke();
+                }
+
+                this.gl.restore(); // Restore base transform
+            }
+
+            // RANDOM CHIP GENERATOR (Wafer Stream spawner)
+            spawnChip() {
+                this.chipIdCounter++;
+                const id = `LOT-${this.chipIdCounter}`;
+
+                // Calculate weights based on Cleanroom level (suppresses dust particles)
+                let weightPerfect = 55;
+                let weightCrack = 15;
+                let weightParticle = 20 - (this.cleanroomLevel * 6);
+                if (weightParticle < 0) weightParticle = 0;
+                let weightMisaligned = 15;
+                let weightBridge = 15;
+
+                const pool = [];
+                for (let i = 0; i < weightPerfect; i++) pool.push('perfect');
+                for (let i = 0; i < weightCrack; i++) pool.push('defect-crack');
+                for (let i = 0; i < weightParticle; i++) pool.push('defect-particles');
+                for (let i = 0; i < weightMisaligned; i++) pool.push('defect-misaligned');
+                for (let i = 0; i < weightBridge; i++) pool.push('defect-bridge');
+
+                const selectedType = pool[Math.floor(Math.random() * pool.length)];
+
+                const newChip = {
+                    id: id,
+                    type: selectedType,
+                    x: this.canvasWidth + 50, // Enter from right
+                    y: this.canvasHeight * 0.5,
+                    opacity: 1.0,
+                    rotation: 0,
+                    isScanned: false,
+                    isSorted: false,
+                    sortDirection: null
+                };
+
+                this.chips.push(newChip);
+            }
+
+            // HOLOGRAPHIC AOI ANALYSIS UPDATER
+            updateHolographicScanner(chip) {
+                document.getElementById('diag-id').textContent = chip.id;
+                const diagAnalysis = document.getElementById('diag-analysis');
+                const diagDefect = document.getElementById('diag-defect-rate');
+                const holoPath = document.getElementById('holo-defect-path');
+
+                if (chip.type === 'perfect') {
+                    diagAnalysis.textContent = 'CLEANROOM A: PASS';
+                    diagAnalysis.className = 'text-green';
+                    diagDefect.textContent = '0.00%';
+                    holoPath.setAttribute('d', ''); // clean
+                } 
+                else if (chip.type === 'defect-crack') {
+                    diagAnalysis.textContent = 'SUBSTRATE CRACK';
+                    diagAnalysis.className = 'text-red pulsing';
+                    diagDefect.textContent = '94.21%';
+                    // Draw cracked path wireframe
+                    holoPath.setAttribute('d', 'M 50 40 L 70 80 L 45 125 L 90 160');
+                }
+                else if (chip.type === 'defect-particles') {
+                    diagAnalysis.textContent = 'PARTICLE CONTAMINATION';
+                    diagAnalysis.className = 'text-red pulsing';
+                    diagDefect.textContent = '78.50%';
+                    // Scatter specs
+                    holoPath.setAttribute('d', 'M 40 45 A 2 2 0 1 1 39.9 45 M 120 70 A 3 3 0 1 1 119.9 70 M 80 130 A 2 2 0 1 1 79.9 130');
+                }
+                else if (chip.type === 'defect-misaligned') {
+                    diagAnalysis.textContent = '晶粒對位偏差 MISALIGN';
+                    diagAnalysis.className = 'text-red pulsing';
+                    diagDefect.textContent = '86.13%';
+                    // Crooked wireframe
+                    holoPath.setAttribute('d', 'M 45 35 L 145 45 L 135 145 L 35 135 Z');
+                }
+                else if (chip.type === 'defect-bridge') {
+                    diagAnalysis.textContent = '凸塊焊料短路 BUMP BRIDGE';
+                    diagAnalysis.className = 'text-red pulsing';
+                    diagDefect.textContent = '99.98%';
+                    // Bridge short connection highlighted
+                    holoPath.setAttribute('d', 'M 80 145 H 120 V 155 H 80 Z');
+                }
+            }
+
+            tickHolographicReadout(activeChip) {
+                if (activeChip && activeChip.isScanned) {
+                    document.getElementById('diag-id').textContent = activeChip.id;
+                } else {
+                    document.getElementById('diag-id').textContent = 'LOT-00000';
+                    const diag = document.getElementById('diag-analysis');
+                    diag.textContent = 'STANDBY';
+                    diag.className = 'text-cyan';
+                    document.getElementById('diag-defect-rate').textContent = '0.00%';
+                    this.clearHoloWireframe();
+                }
+            }
+
+            clearHoloWireframe() {
+                document.getElementById('holo-defect-path').setAttribute('d', '');
+            }
+
+            // CORE SORTING EVALUATOR (A/D sorting checks)
+            sortChip(chip, classification) {
+                if (!chip || chip.isSorted) return;
+                chip.isSorted = true;
+                chip.sortDirection = classification;
+
+                const centerOffset = this.canvasHeight * 0.5;
+
+                if (classification === 'pass') {
+                    this.playPassSound();
+
+                    if (chip.type === 'perfect') {
+                        this.score++;
+                        this.funds += 12; // Extra funds reward for active sorting
+                        this.totalCorrect++;
+
+                        // Perfect alignment bonus check (sorted exactly in the scanner center)
+                        const scannerX = this.canvasWidth * 0.5;
+                        const dist = Math.abs(chip.x - scannerX);
+                        
+                        if (dist < 30) {
+                            this.perfectCount++;
+                            this.funds += 8;
+                            this.logToTerminal(`[ALIGNMENT] Perfect 3D stacking match for Die #${chip.id}! Bonus $8.`, "text-gold");
+                            this.spawnSparkParticles(chip.x, centerOffset - 25, '#fcd34d');
+                        } else {
+                            this.logToTerminal(`[SUCCESS] Die #${chip.id} routed to 3D Stacking.`, "text-dim");
+                            this.spawnSparkParticles(chip.x, centerOffset - 25, '#10b981');
+                        }
+                    } else {
+                        // Package Defective Chip! Disaster!
+                        this.stabilityBeacons--;
+                        this.triggerBeaconAlarm();
+                        this.logToTerminal(`[CRITICAL ALERT] Defective Die #${chip.id} (${this.getDefectChineseName(chip.type)}) packed!`, "text-red");
+                        this.playErrorSound();
+                        this.spawnSparkParticles(chip.x, centerOffset - 25, '#ef4444');
+                    }
+                } 
+                else if (classification === 'reject') {
+                    this.playRejectSound();
+
+                    if (chip.type !== 'perfect') {
+                        this.score++;
+                        this.funds += 15;
+                        this.totalCorrect++;
+                        this.logToTerminal(`[ISOLATE] Isolated ${this.getDefectChineseName(chip.type)} on Die #${chip.id}. Scrap collected.`, "text-cyan");
+                        this.spawnSparkParticles(chip.x, centerOffset + 25, '#06b6d4');
+                    } else {
+                        // Accidental waste of perfect chip!
+                        this.stabilityBeacons--;
+                        this.triggerBeaconAlarm();
+                        this.logToTerminal(`[FALSE REJECT] Perfect chip #${chip.id} destroyed! Budget penalty.`, "text-red");
+                        this.playErrorSound();
+                        this.spawnSparkParticles(chip.x, centerOffset + 25, '#ef4444');
+                    }
+                }
+
+                this.totalProcessed++;
+                this.updateStatsUI();
+                this.checkGameOverConditions();
+            }
+
+            handleKeyDown(event) {
+                if (!this.isPlaying) return;
+
+                // Target is the oldest unprocessed chip closest to exiting the belt (furthest left / smallest x)
+                let activeTarget = null;
+                let minX = Infinity;
+
+                this.chips.forEach(chip => {
+                    if (!chip.isSorted && chip.x < minX) {
+                        minX = chip.x;
+                        activeTarget = chip;
+                    }
+                });
+
+                if (!activeTarget) return;
+
+                if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
+                    event.preventDefault();
+                    const passBtn = document.getElementById('btn-pass');
+                    passBtn.classList.add('active');
+                    setTimeout(() => passBtn.classList.remove('active'), 100);
+
+                    this.sortChip(activeTarget, 'pass');
+                } 
+                else if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
+                    event.preventDefault();
+                    const rejectBtn = document.getElementById('btn-reject');
+                    rejectBtn.classList.add('active');
+                    setTimeout(() => rejectBtn.classList.remove('active'), 100);
+
+                    this.sortChip(activeTarget, 'reject');
+                }
+            }
+
+            // METRICS ENGINE - CALCULATE & UPDATE
+            updateStatsUI() {
+                // Yield calculation: total correct / total processed
+                if (this.totalProcessed > 0) {
+                    this.yieldRate = (this.totalCorrect / this.totalProcessed) * 100;
+                } else {
+                    this.yieldRate = 100.0;
+                }
+
+                const yieldVal = document.getElementById('yield-value');
+                const yieldProgress = document.getElementById('yield-progress');
+                
+                yieldVal.textContent = this.yieldRate.toFixed(1);
+                yieldProgress.style.width = `${this.yieldRate}%`;
+
+                // Color mapping
+                if (this.yieldRate >= 90) {
+                    yieldVal.className = 'value text-green';
+                    yieldProgress.className = 'bar bg-green';
+                } else if (this.yieldRate >= 75) {
+                    yieldVal.className = 'value text-amber';
+                    yieldProgress.className = 'bar bg-amber';
+                } else {
+                    yieldVal.className = 'value text-red';
+                    yieldProgress.className = 'bar bg-red';
+                }
+
+                document.getElementById('score-value').textContent = this.score;
+                document.getElementById('perfect-count-label').textContent = `完美對位: ${this.perfectCount}`;
+
+                // Speed and UPH
+                const uph = Math.round(1200 * this.speedMultiplier);
+                document.getElementById('uph-value').textContent = uph.toLocaleString();
+                document.getElementById('uph-progress').style.width = `${Math.min(100, (uph / 5000) * 100)}%`;
+                document.getElementById('speed-multiplier-label').textContent = `傳送帶倍速: ${this.speedMultiplier.toFixed(1)}x`;
+
+                document.getElementById('funds-value').textContent = this.funds;
+
+                this.updateUpgradeButtons();
+            }
+
+            checkGameOverConditions() {
+                if (this.stabilityBeacons <= 0) {
+                    this.stopGame("instability");
+                } else if (this.totalProcessed >= 5 && this.yieldRate < 60.0) {
+                    this.stopGame("yield");
+                }
+            }
+
+            // GRAPHIC BEACONS (LIVES)
+            resetBeacons() {
+                this.stabilityBeacons = 3;
+                for (let i = 1; i <= 3; i++) {
+                    const b = document.getElementById(`beacon-${i}`);
+                    b.className = 'beacon active';
+                }
+            }
+
+            triggerBeaconAlarm() {
+                const b = document.getElementById(`beacon-${4 - this.stabilityBeacons}`);
+                if (b) {
+                    b.className = 'beacon warning';
+                }
+            }
+
+            // UPGRADES MANAGER
+            buyUpgrade(tech) {
+                const currentLvl = tech === 'aoi' ? this.aoiLevel : (tech === 'clean' ? this.cleanroomLevel : this.beltLevel);
+                if (currentLvl >= 3) return;
+
+                const cost = this.upgradeCosts[tech][currentLvl];
+                if (this.funds >= cost) {
+                    this.funds -= cost;
+
+                    if (tech === 'aoi') {
+                        this.aoiLevel++;
+                        document.getElementById('upg-aoi-level').textContent = `Lv ${this.aoiLevel} / 3`;
+                        this.logToTerminal(`[RESEARCH] AI AOI+ Scan Engine upgraded to Level ${this.aoiLevel}!`, "text-cyan");
+                    } 
+                    else if (tech === 'clean') {
+                        this.cleanroomLevel++;
+                        document.getElementById('upg-clean-level').textContent = `Lv ${this.cleanroomLevel} / 3`;
+                        const statusText = this.cleanroomLevel === 1 ? "Class 10" : (this.cleanroomLevel === 2 ? "Class 1" : "Class 0 (Absolute Vacuum)");
+                        document.getElementById('cleanroom-value').textContent = `ISO ${statusText}`;
+                        this.logToTerminal(`[RESEARCH] Cleanroom filters standardized to Level ${this.cleanroomLevel}! Particles suppressed.`, "text-cyan");
+                    } 
+                    else if (tech === 'belt') {
+                        this.beltLevel++;
+                        document.getElementById('upg-belt-level').textContent = `Lv ${this.beltLevel} / 3`;
+                        this.logToTerminal(`[RESEARCH] Dampener motor installed. Dynamic speed scaling reduced.`, "text-cyan");
+                    }
+
+                    this.playUpgradeSound();
+                    this.updateStatsUI();
+                }
+            }
+
+            updateUpgradeButtons() {
+                const checkUpg = (tech, level) => {
+                    const btn = document.getElementById(`btn-upg-${tech}`);
+                    const card = document.getElementById(`upg-${tech}`);
+                    
+                    if (level >= 3) {
+                        btn.disabled = true;
+                        btn.innerHTML = '已滿級 (MAX)';
+                        card.style.opacity = '0.7';
+                        return;
+                    }
+
+                    const cost = this.upgradeCosts[tech][level];
+                    btn.querySelector('.cost').textContent = `$${cost}`;
+                    btn.disabled = this.funds < cost;
+                };
+
+                checkUpg('aoi', this.aoiLevel);
+                checkUpg('clean', this.cleanroomLevel);
+                checkUpg('belt', this.beltLevel);
+            }
+
+            // CANVAS PARTICLE SYSTEM (Sparks Visual feedback)
+            spawnSparkParticles(x, y, color) {
+                const count = 12 + Math.floor(Math.random() * 8);
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const velocity = 2 + Math.random() * 5;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * velocity,
+                        vy: Math.sin(angle) * velocity,
+                        color: color,
+                        opacity: 1.0,
+                        radius: 1.5 + Math.random() * 2
+                    });
+                }
+            }
+
+            drawAndUpdateParticles() {
+                this.particles.forEach((p, idx) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.opacity -= 0.04;
+
+                    if (p.opacity <= 0) {
+                        this.particles.splice(idx, 1);
+                        return;
+                    }
+
+                    this.gl.fillStyle = p.color;
+                    this.gl.globalAlpha = p.opacity;
+                    this.gl.shadowColor = p.color;
+                    this.gl.shadowBlur = 4;
+                    this.gl.beginPath();
+                    this.gl.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+                    this.gl.fill();
+                });
+                
+                this.gl.shadowBlur = 0;
+                this.gl.globalAlpha = 1.0;
+            }
+
+            // CORE LOG FEEDS
+            logToTerminal(text, className = "") {
+                const p = document.createElement('p');
+                p.className = className;
+                p.textContent = text;
+                const terminal = document.getElementById('terminal-body');
+                terminal.appendChild(p);
+
+                terminal.scrollTop = terminal.scrollHeight;
+
+                if (terminal.children.length > 20) {
+                    terminal.children[0].remove();
+                }
+            }
+
+            clearTerminal() {
+                document.getElementById('terminal-body').innerHTML = "";
+            }
+
+            getDefectChineseName(type) {
+                switch (type) {
+                    case 'defect-crack': return "微裂紋";
+                    case 'defect-particles': return "微塵污染";
+                    case 'defect-misaligned': return "晶粒對位偏差";
+                    case 'defect-bridge': return "金屬短路";
+                    default: return "瑕疵晶片";
+                }
+            }
+        }
+
+        // INITIALIZE ON DOM CONTENT LOAD
+        window.addEventListener('load', () => {
+            const game = new AdvancedPackagingGame();
+
+            document.getElementById('btn-start-game').addEventListener('click', () => {
+                const sound = document.getElementById('sound-enabled').checked;
+                game.audioEnabled = sound;
+                game.startGame();
+            });
+
+            document.getElementById('btn-restart-game').addEventListener('click', () => {
+                game.startGame();
+            });
+
+            // Upgrades click events
+            document.getElementById('btn-upg-aoi').addEventListener('click', () => game.buyUpgrade('aoi'));
+            document.getElementById('btn-upg-clean').addEventListener('click', () => game.buyUpgrade('clean'));
+            document.getElementById('btn-upg-belt').addEventListener('click', () => game.buyUpgrade('belt'));
+
+            // Tactile HUD Action buttons
+            document.getElementById('btn-pass').addEventListener('click', () => {
+                if (!game.isPlaying) return;
+                let target = null;
+                let minX = Infinity;
+                game.chips.forEach(c => {
+                    if (!c.isSorted && c.x < minX) {
+                        minX = c.x;
+                        target = c;
+                    }
+                });
+                if (target) game.sortChip(target, 'pass');
+            });
+
+            document.getElementById('btn-reject').addEventListener('click', () => {
+                if (!game.isPlaying) return;
+                let target = null;
+                let minX = Infinity;
+                game.chips.forEach(c => {
+                    if (!c.isSorted && c.x < minX) {
+                        minX = c.x;
+                        target = c;
+                    }
+                });
+                if (target) game.sortChip(target, 'reject');
+            });
+
+            // Feed clock
+            setInterval(() => {
+                const clock = document.getElementById('system-time');
+                if (clock) {
+                    const d = new Date();
+                    clock.textContent = d.toTimeString().split(' ')[0];
+                }
+            }, 1000);
+        });
+    </script>
 </body>
 </html>
