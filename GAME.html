@@ -254,8 +254,67 @@
     </div>
 
     <!-- SCREENS AND OVERLAYS -->
+    <!-- BOOT SYSTEM OVERLAY -->
+    <div id="boot-screen" class="overlay active">
+        <div class="overlay-panel glass">
+            <h2 class="glow-title">FAB-36 SECURE TERMINAL</h2>
+            <p class="subtitle">ADVANCED YIELD OPTIMIZATION DECK</p>
+            
+            <div class="boot-logo-wrapper">
+                <svg viewBox="0 0 100 100" id="boot-svg" style="width: 120px; height: 120px; filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.6)); margin: 10px 0;">
+                    <!-- Concentric tech circles -->
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(6, 182, 212, 0.2)" stroke-width="1.5"></circle>
+                    <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(6, 182, 212, 0.4)" stroke-dasharray="8 6" stroke-width="2" style="animation: spin 15s infinite linear; transform-origin: 50% 50%;"></circle>
+                    <!-- Wafer Grid / Silicon Die representation -->
+                    <rect x="36" y="36" width="28" height="28" rx="4" fill="rgba(6, 182, 212, 0.05)" stroke="var(--neon-cyan)" stroke-width="2"></rect>
+                    <line x1="36" y1="43" x2="64" y2="43" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="36" y1="50" x2="64" y2="50" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="36" y1="57" x2="64" y2="57" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="43" y1="36" x2="43" y2="64" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="50" y1="36" x2="50" y2="64" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="57" y1="36" x2="57" y2="64" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                </svg>
+            </div>
+            
+            <p class="system-status-msg text-cyan font-mono" style="font-size: 0.8rem; margin: 10px 0;">[SYSTEM STATUS: SECURITY FIREWALL INTACT. PRESS INITIALIZE]</p>
+            <button id="btn-boot-system" class="huge-glow-btn">初始化產線系統 (BOOT SYSTEM)</button>
+        </div>
+    </div>
+
+    <!-- STAR WARS STYLE INTRO OVERLAY -->
+    <div id="intro-screen" class="overlay" style="background: #000; overflow: hidden;">
+        <div class="intro-container">
+            <!-- Long time ago... text -->
+            <div id="intro-far-away" class="intro-text-blue">
+                很久很久以前，在一個非常潔淨的無塵室裡……
+            </div>
+            
+            <!-- Zooming yellow logo -->
+            <div id="intro-logo" class="intro-logo-yellow">
+                先進封裝<br>良率分類機
+            </div>
+
+            <!-- Crawl perspective container -->
+            <div id="intro-crawl-container" class="intro-crawl-wrapper">
+                <div id="intro-crawl-content" class="intro-crawl-text">
+                    <h3 class="episode-number">第一部曲：幽靈微塵的威脅</h3>
+                    <h4 class="episode-title">良率保衛戰</h4>
+                    
+                    <p>這是一個奈米微縮的極限時代。</p>
+                    <p>傳統的摩爾定律已面臨嚴苛物理極限，晶體管無法再無限制地縮小，微縮之路步步維艱。</p>
+                    <p>為了拯救半導體效能的未來，帝國研發出了極致的「3D垂直堆疊先進封裝技術」，將多顆晶粒像蓋摩天大樓般緊密連結！</p>
+                    <p>然而，黑暗的瑕疵勢力悄然無息地滲透進了傳送帶。微裂紋、環境塵埃、凸塊短路與對位偏差，正威脅著極度昂貴的晶圓良率。</p>
+                    <p>作為 FAB-36 的首席工程師，你手握先進的光學 AOI 雷射掃描儀。你必須精確判定完美晶粒，並在時限內將致命瑕疵排除，引領半導體科技走向良率滿分的光明未來……</p>
+                </div>
+            </div>
+
+            <!-- Skip Button -->
+            <button id="btn-skip-intro" class="skip-intro-btn">跳過簡報 (SKIP INTRO)</button>
+        </div>
+    </div>
+
     <!-- START / INSTRUCTIONS OVERLAY -->
-    <div id="start-screen" class="overlay active">
+    <div id="start-screen" class="overlay">
         <div class="overlay-panel glass">
             <h2 class="glow-title">先進封裝良率分類機</h2>
             <p class="subtitle">ADVANCED PACKAGING YIELD CLASSIFIER v1.0.0</p>

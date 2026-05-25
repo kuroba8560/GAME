@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「先進封裝」良率分類機 - FAB-36 Advanced Yield Optimization</title>
+    <meta name="description" content="很久很久以前，在一個非常潔淨的無塵室裡……體驗半導體先進封裝製程良率分類的史詩級挑戰！">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --neon-cyan: #06b6d4;
+            --neon-yellow: #ffc500;
+            --neon-blue: #4bd5ee;
+            --bg-dark: #000000;
+            --font-cyber: 'Orbitron', 'Inter', sans-serif;
+            --font-mono: 'Share Tech Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 3D Moving Starfield Canvas */
+        #starfield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Ambient scanlines */
+        #scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.2) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        /* Common Overlay Style */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            background: rgba(0, 0, 0, 0.85);
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* BOOT INTERACTIVE PANEL */
+        #boot-screen {
+            background: #000000;
+        }
+
+        .glass-panel {
+            background: rgba(10, 15, 29, 0.75);
+            border: 2px solid rgba(6, 182, 212, 0.2);
+            border-radius: 16px;
+            padding: 40px;
+            width: 500px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.15), inset 0 0 15px rgba(6, 182, 212, 0.05);
+            backdrop-filter: blur(15px);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .glow-title {
+            font-family: var(--font-cyber);
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: #ffffff;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--neon-cyan);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .boot-icon svg {
+            animation: pulse-icon 2s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulse-icon {
+            0% { transform: scale(0.96); filter: drop-shadow(0 0 5px rgba(6, 182, 212, 0.4)); }
+            100% { transform: scale(1.04); filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.8)); }
+        }
+
+        .huge-btn {
+            font-family: var(--font-cyber);
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: #ffffff;
+            background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
+            border: 2px solid #22d3ee;
+            border-radius: 8px;
+            padding: 14px 32px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 5px 15px rgba(6, 182, 212, 0.3);
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .huge-btn:hover {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
+            filter: brightness(1.15);
+        }
+
+        .huge-btn:active {
+            transform: translateY(2px);
+        }
+
+        /* EPIC STAR WARS CRAWL SCREEN */
+        #intro-screen {
+            background: #000000;
+            z-index: 15;
+        }
+
+        .intro-viewport {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* "A long time ago..." text style */
+        #intro-far-away {
+            position: absolute;
+            color: var(--neon-blue);
+            font-size: 1.6rem;
+            font-weight: 400;
+            text-align: center;
+            width: 80%;
+            max-width: 800px;
+            line-height: 1.6;
+            opacity: 0;
+            z-index: 25;
+            pointer-events: none;
+        }
+
+        #intro-far-away.animate {
+            animation: fade-blue-text 6s ease-in-out forwards;
+        }
+
+        @keyframes fade-blue-text {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Zooming yellow Star Wars logo */
+        #intro-logo {
+            position: absolute;
+            width: 90%;
+            max-width: 900px;
+            text-align: center;
+            transform: scale(3.5);
+            font-family: var(--font-cyber);
+            font-size: 4.5rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 20px rgba(255, 197, 0, 0.4);
+            opacity: 0;
+            line-height: 1.25;
+            z-index: 22;
+            pointer-events: none;
+        }
+
+        #intro-logo.animate {
+            animation: zoom-out-logo 11s cubic-bezier(0.12, 0.82, 0.16, 1) forwards;
+        }
+
+        @keyframes zoom-out-logo {
+            0% { opacity: 0; transform: scale(3.5); }
+            6% { opacity: 1; transform: scale(3.0); }
+            85% { opacity: 1; }
+            100% { opacity: 0; transform: scale(0.04); }
+        }
+
+        /* Crawl Perspective container */
+        .intro-crawl-wrapper {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            bottom: 0;
+            left: 0;
+            perspective: 320px;
+            perspective-origin: 50% 100%;
+            z-index: 18;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .intro-crawl-wrapper.animate {
+            opacity: 1;
+        }
+
+        .intro-crawl-text {
+            position: absolute;
+            top: 100%;
+            width: 60%;
+            max-width: 750px;
+            left: 20%;
+            text-align: justify;
+            font-size: 1.35rem;
+            font-weight: bold;
+            line-height: 2.1;
+            letter-spacing: 2px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 8px rgba(255, 197, 0, 0.3);
+            transform: rotateX(25deg);
+            transform-origin: 50% 100%;
+            padding-bottom: 300px;
+        }
+
+        .intro-crawl-text.animate {
+            animation: crawl-text 50s linear forwards;
+        }
+
+        @keyframes crawl-text {
+            0% { top: 100%; }
+            100% { top: -210%; }
+        }
+
+        .intro-crawl-text p {
+            margin-bottom: 2rem;
+        }
+
+        .intro-crawl-text .episode-number {
+            font-family: var(--font-cyber);
+            font-size: 1.1rem;
+            letter-spacing: 5px;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .intro-crawl-text .episode-title {
+            font-family: var(--font-cyber);
+            font-size: 1.8rem;
+            letter-spacing: 6px;
+            text-align: center;
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+        }
+
+        .skip-intro-btn {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            z-index: 30;
+            background: transparent;
+            border: 1.5px solid rgba(255, 197, 0, 0.4);
+            color: var(--neon-yellow);
+            font-family: var(--font-cyber);
+            padding: 10px 24px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            letter-spacing: 1.5px;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .skip-intro-btn:hover {
+            background: rgba(255, 197, 0, 0.1);
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 12px rgba(255, 197, 0, 0.4);
+        }
+
+        /* LANDING / PLAY GAME DIRECT DECK */
+        #landing-screen {
+            background: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.15) 0%, rgba(2, 6, 12, 0.95) 90%);
+        }
+
+        .landing-panel {
+            width: 700px;
+            background: rgba(10, 15, 29, 0.85);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 16px;
+            padding: 35px;
+            box-shadow: 0 0 40px rgba(6, 182, 212, 0.3);
+            backdrop-filter: blur(15px);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+            z-index: 20;
+        }
+
+        .lore-box {
+            background: rgba(2, 6, 12, 0.8);
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: left;
+            font-size: 0.85rem;
+            line-height: 1.7;
+            color: rgba(226, 232, 240, 0.8);
+        }
+
+        .lore-box strong {
+            color: var(--neon-cyan);
+        }
+
+        .lore-box p {
+            margin-bottom: 8px;
+        }
+
+        .instructions-grid {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .ins-card {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ins-key {
+            background: #334155;
+            border: 1.5px solid #475569;
+            box-shadow: 0 3px 0 #1e293b;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            padding: 2px 12px;
+            font-size: 1rem;
+            color: #ffffff;
+        }
+
+        .ins-card p {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-top: 4px;
+        }
+
+        .ins-note {
+            font-size: 0.72rem;
+            color: rgba(226, 232, 240, 0.45);
+        }
+
+        .btn-play-now {
+            font-family: var(--font-cyber);
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #ffffff;
+            background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+            border: 2px solid #34d399;
+            border-radius: 8px;
+            padding: 16px 45px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-play-now:hover {
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.7);
+            filter: brightness(1.15);
+            transform: scale(1.02);
+        }
+
+        .btn-play-now:active {
+            transform: translateY(2px);
+        }
+
+        /* GITHUB FORK CORNER */
+        .github-corner svg {
+            fill: var(--neon-cyan);
+            color: #000;
+            position: absolute;
+            top: 0;
+            border: 0;
+            right: 0;
+            z-index: 1000;
+            filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.5));
+            transition: all 0.25s ease-in-out;
+        }
+        .github-corner:hover svg {
+            fill: var(--neon-yellow);
+            filter: drop-shadow(0 0 12px var(--neon-yellow));
+        }
+
+        /* MEDIA QUERY RESPONSIVENESS */
+        @media (max-width: 768px) {
+            .glass-panel, .landing-panel {
+                width: 90%;
+                padding: 20px;
+            }
+            #intro-logo {
+                font-size: 2.5rem;
+            }
+            .intro-crawl-text {
+                width: 80%;
+                left: 10%;
+                font-size: 1rem;
+                line-height: 1.8;
+            }
+            .instructions-grid {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starfield"></canvas>
+    <div id="scanlines"></div>
+
+    <!-- BOOT SYSTEM FIREWALL SCREEN -->
+    <section id="boot-screen" class="overlay active">
+        <div class="glass-panel">
+            <h2 class="glow-title">FAB-36 Secure Terminal</h2>
+            <p class="subtitle">Wafer Yield Authorization Deck</p>
+            
+            <div class="boot-icon">
+                <svg viewBox="0 0 100 100" id="boot-svg" style="width: 100px; height: 100px;">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(6, 182, 212, 0.15)" stroke-width="1.5"></circle>
+                    <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(6, 182, 212, 0.35)" stroke-dasharray="10 8" stroke-width="2" style="animation: spin 20s infinite linear; transform-origin: 50% 50%;"></circle>
+                    
+                    <!-- Wafer Grid / Silicon Die representation -->
+                    <rect x="37" y="37" width="26" height="26" rx="3" fill="rgba(6, 182, 212, 0.05)" stroke="var(--neon-cyan)" stroke-width="2"></rect>
+                    <line x1="37" y1="43.5" x2="63" y2="43.5" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="37" y1="50" x2="63" y2="50" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="37" y1="56.5" x2="63" y2="56.5" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="43.5" y1="37" x2="43.5" y2="63" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="50" y1="37" x2="50" y2="63" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                    <line x1="56.5" y1="37" x2="56.5" y2="63" stroke="var(--neon-cyan)" stroke-width="1"></line>
+                </svg>
+            </div>
+            
+            <p class="font-mono text-cyan" style="font-size: 0.75rem; color: var(--neon-cyan);">[READY: WAFER SORTER FIREWALL DECRYPTED. INITIALIZE BOOT]</p>
+            <button id="btn-boot-system" class="huge-btn">初始化產線系統 (BOOT SYSTEM)</button>
+        </div>
+    </section>
+
+    <!-- EPIC STAR WARS CRAWL INTERFACE -->
+    <section id="intro-screen" class="overlay">
+        <div class="intro-viewport">
+            <!-- Galaxy text -->
+            <div id="intro-far-away">
+                很久很久以前，在一個非常潔淨的無塵室裡……
+            </div>
+            
+            <!-- Zooming title -->
+            <div id="intro-logo">
+                先進封裝<br>良率分類機
+            </div>
+
+            <!-- Crawling text inside 3D perspective -->
+            <div id="intro-crawl-container" class="intro-crawl-wrapper">
+                <div id="intro-crawl-content" class="intro-crawl-text">
+                    <h3 class="episode-number">第一部曲：幽靈微塵的威脅</h3>
+                    <h4 class="episode-title">良率保衛戰</h4>
+                    
+                    <p>這是一個奈米微縮的極限時代。</p>
+                    <p>傳統的摩爾定律已面臨嚴苛物理極限，晶體管無法再無限制地縮小，微縮之路步步維艱。</p>
+                    <p>為了拯救半導體效能的未來，帝國研發出了極致的「3D垂直堆疊先進封裝技術」，將多顆晶粒像蓋摩天大樓般緊密連結！</p>
+                    <p>然而，黑暗的瑕疵勢力悄然無息地滲透進了傳送帶。微裂紋、環境塵埃、凸塊短路與對位偏差，正威脅著極度昂貴的晶圓良率。</p>
+                    <p>作為 FAB-36 的首席工程師，你手握先進的光學 AOI 雷射掃描儀。你必須精確判定完美晶粒，並在時限內將致命瑕疵排除，引領半導體科技走向良率滿分的光明未來……</p>
+                </div>
+            </div>
+
+            <!-- Skip Button -->
+            <button id="btn-skip-intro" class="skip-intro-btn">跳過簡報 (SKIP INTRO)</button>
+        </div>
+    </section>
+
+    <!-- FINAL LANDING / REDIRECT PANEL -->
+    <section id="landing-screen" class="overlay">
+        <div class="landing-panel">
+            <h2 class="glow-title" style="color: var(--neon-cyan); text-shadow: 0 0 15px rgba(6, 182, 212, 0.4);">
+                FAB-36 產線控制系統
+            </h2>
+            <p class="subtitle">Advanced Wafer Sorting Operational Deck</p>
+
+            <div class="lore-box">
+                <p><strong>無塵室工程師任務指令：</strong></p>
+                <p>輸送帶上將會傳送源源不絕的晶粒。當晶粒通過中段的 <strong>AOI 雷射光學掃描區</strong>時，全息顯示幕會投射出其內部結構 X 光圖。</p>
+                <p>請將<strong>完美良品（綠色指示燈、無缺陷）</strong>送入 3D 封裝倉；並將<strong>瑕疵品（微裂紋、微塵、對位偏差、金屬短路）</strong>進行廢料剔除。</p>
+                <p><strong>防線警戒：</strong>若將瑕疵品混入 3D 堆疊，或把完美品剔除，會導致昂貴的<strong>良率損失</strong>！綜合良率若<strong>低於 60%</strong>，或<strong>警報燈全亮</strong>，產線將強制關停整頓！</p>
+            </div>
+
+            <div class="instructions-grid">
+                <div class="ins-card">
+                    <span class="ins-key">A</span>
+                    <span class="ins-key">←</span>
+                    <p>良品封裝</p>
+                    <span class="ins-note">輸送帶完美無暇晶片</span>
+                </div>
+                <div class="ins-card">
+                    <span class="ins-key">D</span>
+                    <span class="ins-key">→</span>
+                    <p>瑕疵剔除</p>
+                    <span class="ins-note">微裂紋 / 微塵 / 偏差 / 短路</span>
+                </div>
+            </div>
+
+            <a href="GAME.html" class="btn-play-now">啟動生產線 (START ASSEMBLY)</a>
+        </div>
+    </section>
+
+    <!-- GitHub Fork Corner Ribbon -->
+    <a href="https://github.com" class="github-corner" aria-label="View source on GitHub" target="_blank">
+        <svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true">
+            <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+            <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+            <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.9 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+        </svg>
+    </a>
+
+    <script>
+        // --- WEB AUDIO API EPIC FANFARE SYNTH ENGINE ---
+        let audioCtx = null;
+        
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playFanfare() {
+            if (!audioCtx) return;
+            const ctx = audioCtx;
+            const now = ctx.currentTime;
+
+            // 1. Heavy bass rumble (Bb2)
+            const sub = ctx.createOscillator();
+            const subGain = ctx.createGain();
+            sub.type = 'sawtooth';
+            sub.frequency.setValueAtTime(116.54, now);
+            subGain.gain.setValueAtTime(0.12, now);
+            subGain.gain.linearRampToValueAtTime(0.001, now + 4.5);
+            sub.connect(subGain);
+            subGain.connect(ctx.destination);
+            sub.start(now);
+            sub.stop(now + 4.5);
+
+            // 2. Rising space brass chords (Bb major triad)
+            const arpeggio = [
+                { freq: 233.08, delay: 0 },    // Bb3
+                { freq: 293.66, delay: 0.1 },  // D4
+                { freq: 349.23, delay: 0.2 },  // F4
+                { freq: 466.16, delay: 0.3 }   // Bb4
+            ];
+
+            arpeggio.forEach(note => {
+                const osc = ctx.createOscillator();
+                const filter = ctx.createBiquadFilter();
+                const gain = ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(note.freq, now + note.delay);
+
+                // Sweeping brass filter
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(100, now + note.delay);
+                filter.frequency.exponentialRampToValueAtTime(3200, now + note.delay + 0.85);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.08, now + note.delay + 0.1);
+                gain.gain.linearRampToValueAtTime(0.08, now + 2.5);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 4.0);
+            });
+
+            // 3. Majestic thematic opening melody: Bb4 -> F5 -> Eb5-D5-C5 -> Bb5
+            const melody = [
+                { freq: 466.16, time: 0.6, dur: 0.5 }, // Bb4
+                { freq: 698.46, time: 1.2, dur: 0.4 }, // F5
+                { freq: 622.25, time: 1.6, dur: 0.1 }, // Eb5
+                { freq: 587.33, time: 1.7, dur: 0.1 }, // D5
+                { freq: 523.25, time: 1.8, dur: 0.1 }, // C5
+                { freq: 932.33, time: 2.0, dur: 1.5 }  // Bb5
+            ];
+
+            melody.forEach(m => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(m.freq, now + m.time);
+                
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.07, now + m.time + 0.02);
+                gain.gain.linearRampToValueAtTime(0.07, now + m.time + m.dur - 0.05);
+                gain.gain.linearRampToValueAtTime(0.001, now + m.time + m.dur);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start(now);
+                osc.stop(now + m.time + m.dur);
+            });
+        }
+
+
+        // --- INTERACTIVE CANVAS 3D STARFIELD ENGINE ---
+        const canvas = document.getElementById('starfield');
+        const gl = canvas.getContext('2d');
+        
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        
+        const numStars = 280;
+        const stars = [];
+        let speedFactor = 0.5; // Starts slow, boots into warp speed, then cruises
+
+        // Star Blueprint constructor
+        class Star {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                // Distribute in a 3D coordinate frame (-width to +width)
+                this.x = (Math.random() - 0.5) * width * 2;
+                this.y = (Math.random() - 0.5) * height * 2;
+                // Z represents distance from viewer
+                this.z = Math.random() * width;
+                this.color = Math.random() > 0.15 ? '#ffffff' : (Math.random() > 0.5 ? 'var(--neon-cyan)' : 'var(--neon-yellow)');
+            }
+
+            update() {
+                // Move star closer along Z axis
+                this.z -= speedFactor;
+                
+                if (this.z <= 0) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                // Project 3D coordinate to 2D screen coordinate
+                const k = 120 / this.z;
+                const px = this.x * k + width / 2;
+                const py = this.y * k + height / 2;
+                
+                if (px >= 0 && px <= width && py >= 0 && py <= height) {
+                    const radius = (1 - this.z / width) * 2.8;
+                    const alpha = (1 - this.z / width);
+                    
+                    gl.fillStyle = this.color;
+                    gl.globalAlpha = alpha;
+                    gl.beginPath();
+                    gl.arc(px, py, radius, 0, Math.PI * 2);
+                    gl.fill();
+                }
+            }
+        }
+
+        // Initialize stars pool
+        for (let i = 0; i < numStars; i++) {
+            stars.push(new Star());
+        }
+
+        // Loop animation frame
+        function animateStarfield() {
+            gl.fillStyle = '#000000';
+            gl.globalAlpha = 0.25; // Create faint trails
+            gl.fillRect(0, 0, width, height);
+            
+            gl.globalAlpha = 1.0;
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            requestAnimationFrame(animateStarfield);
+        }
+
+        animateStarfield();
+
+        // Responsive window scaling
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+
+        // --- STAR WARS INTRO FLOW CONTROLLER ---
+        let introTimeouts = [];
+        const bootScreen = document.getElementById('boot-screen');
+        const introScreen = document.getElementById('intro-screen');
+        const landingScreen = document.getElementById('landing-screen');
+
+        document.getElementById('btn-boot-system').addEventListener('click', () => {
+            // 1. Boot audio & play
+            initAudio();
+            playFanfare();
+
+            // Warp speed stars transition!
+            speedFactor = 15;
+            setTimeout(() => { speedFactor = 0.8; }, 2500); // Cruising speed
+
+            // 2. Hide boot, show intro screen
+            bootScreen.classList.remove('active');
+            introScreen.classList.add('active');
+
+            // 3. Stage 1: "A long time ago..."
+            const farAwayText = document.getElementById('intro-far-away');
+            farAwayText.classList.add('animate');
+
+            // Stage 2: Logo Zoom (starts at 5.5s)
+            const t1 = setTimeout(() => {
+                const logo = document.getElementById('intro-logo');
+                logo.classList.add('animate');
+            }, 5500);
+
+            // Stage 3: Text Crawl starts (starts at 8.5s)
+            const t2 = setTimeout(() => {
+                const crawlWrapper = document.getElementById('intro-crawl-container');
+                const crawlContent = document.getElementById('intro-crawl-content');
+                crawlWrapper.classList.add('animate');
+                crawlContent.classList.add('animate');
+            }, 8500);
+
+            // Stage 4: Automatically end crawl after 58s
+            const t3 = setTimeout(() => {
+                endIntro();
+            }, 58000);
+
+            introTimeouts.push(t1, t2, t3);
+        });
+
+        const endIntro = () => {
+            // Clear pending timers
+            introTimeouts.forEach(t => clearTimeout(t));
+            introTimeouts = [];
+
+            // Warp speed transition to Landing dashboard!
+            speedFactor = 22;
+            setTimeout(() => { speedFactor = 0.4; }, 1500); // Cruise slow on landing
+
+            // Hide intro screen, show landing panel
+            introScreen.classList.remove('active');
+            landingScreen.classList.add('active');
+
+            // Reset animation tags to clean state
+            document.getElementById('intro-far-away').classList.remove('animate');
+            document.getElementById('intro-logo').classList.remove('animate');
+            document.getElementById('intro-crawl-container').classList.remove('animate');
+            document.getElementById('intro-crawl-content').classList.remove('animate');
+        };
+
+        // Skip button handler
+        document.getElementById('btn-skip-intro').addEventListener('click', () => {
+            endIntro();
+        });
+
+        // Spin keyframes fallback (in case CSS stylesheet loading is slow)
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
