@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>「先進封裝」良率分類機 - FAB-36 Advanced Yield Optimization</title>
     <meta name="description" content="很久很久以前，在一個非常潔淨的無塵室裡……體驗半導體先進封裝製程良率分類的史詩級挑戰！">
+    <meta name="color-scheme" content="only dark">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,6 +14,7 @@
     
     <style>
         :root {
+            color-scheme: only dark;
             --neon-cyan: #06b6d4;
             --neon-yellow: #ffc500;
             --neon-blue: #4bd5ee;
@@ -578,6 +580,33 @@
     </a>
 
     <script>
+        // Global error logging for foolproof remote troubleshooting
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("Global Error Caught:", message, "at", source, ":", lineno);
+            const errorMsg = error ? error.stack : `${message}\nLine: ${lineno}\nColumn: ${colno}`;
+            alert("導覽系統運行異常！\n詳細資訊:\n" + errorMsg);
+            
+            if (!document.getElementById('sys-critical-error-banner')) {
+                const banner = document.createElement('div');
+                banner.id = 'sys-critical-error-banner';
+                banner.style.position = 'fixed';
+                banner.style.top = '0';
+                banner.style.left = '0';
+                banner.style.width = '100vw';
+                banner.style.background = '#ef4444';
+                banner.style.color = '#ffffff';
+                banner.style.padding = '15px';
+                banner.style.zIndex = '99999';
+                banner.style.fontFamily = 'monospace';
+                banner.style.fontSize = '12px';
+                banner.style.whiteSpace = 'pre-wrap';
+                banner.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+                banner.innerHTML = `<h3>[SYSTEM CRITICAL ERROR] FAB-36 PORTAL CRASH</h3><p>An unexpected exception occurred during portal loading.</p><hr style="margin: 10px 0; border-color: rgba(255,255,255,0.3);"/><p><strong>Error Message:</strong> ${message}</p><p><strong>Stack Trace:</strong></p><pre style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; overflow-x: auto;">${errorMsg}</pre>`;
+                document.body.appendChild(banner);
+            }
+            return false;
+        };
+
         // --- WEB AUDIO API EPIC FANFARE SYNTH ENGINE ---
         let audioCtx = null;
         
@@ -671,10 +700,10 @@
 
         // --- INTERACTIVE CANVAS 3D STARFIELD ENGINE ---
         const canvas = document.getElementById('starfield');
-        const gl = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d');
         
-        let width = canvas.width = window.innerWidth;
-        let height = canvas.height = window.innerHeight;
+        let width = canvas.width = window.innerWidth || 800;
+        let height = canvas.height = window.innerHeight || 600;
         
         const numStars = 280;
         const stars = [];
@@ -690,9 +719,9 @@
                 // Distribute in a 3D coordinate frame (-width to +width)
                 this.x = (Math.random() - 0.5) * width * 2;
                 this.y = (Math.random() - 0.5) * height * 2;
-                // Z represents distance from viewer
-                this.z = Math.random() * width;
-                this.color = Math.random() > 0.15 ? '#ffffff' : (Math.random() > 0.5 ? 'var(--neon-cyan)' : 'var(--neon-yellow)');
+                // Z represents distance from viewer (ensure minimum of 10 to prevent division by zero)
+                this.z = Math.random() * width + 10;
+                this.color = Math.random() > 0.15 ? '#ffffff' : (Math.random() > 0.5 ? '#06b6d4' : '#ffc500');
             }
 
             update() {
@@ -705,20 +734,21 @@
             }
 
             draw() {
-                // Project 3D coordinate to 2D screen coordinate
-                const k = 120 / this.z;
+                // Project 3D coordinate to 2D screen coordinate (protect z depth)
+                const depth = Math.max(1.0, this.z);
+                const k = 120 / depth;
                 const px = this.x * k + width / 2;
                 const py = this.y * k + height / 2;
                 
                 if (px >= 0 && px <= width && py >= 0 && py <= height) {
-                    const radius = (1 - this.z / width) * 2.8;
-                    const alpha = (1 - this.z / width);
+                    const radius = (1 - depth / width) * 2.8;
+                    const alpha = Math.max(0.1, 1 - depth / width);
                     
-                    gl.fillStyle = this.color;
-                    gl.globalAlpha = alpha;
-                    gl.beginPath();
-                    gl.arc(px, py, radius, 0, Math.PI * 2);
-                    gl.fill();
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = alpha;
+                    ctx.beginPath();
+                    ctx.arc(px, py, Math.max(0.5, radius), 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         }

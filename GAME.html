@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAB-36 先進封裝良率分類機 - Advanced Yield Optimization</title>
     <meta name="description" content="控制 FAB-36 產線，利用 Canvas 與 Web Audio 技術即時檢測 3D 堆疊晶粒良率！">
+    <meta name="color-scheme" content="only dark">
     
     <!-- Google Fonts for Cyber Console UI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,22 +14,23 @@
     
     <style>
         :root {
-            --bg-darker: #040812;
-            --bg-dark: #090f20;
-            --bg-panel: rgba(10, 18, 36, 0.75);
-            --border-color: rgba(6, 182, 212, 0.2);
-            --border-hover: rgba(6, 182, 212, 0.55);
+            color-scheme: only light;
+            --bg-darker: #f0f4f8; /* Clinical cleanroom light-slate white */
+            --bg-dark: #e2e8f0; /* Soft steel blue background */
+            --bg-panel: rgba(255, 255, 255, 0.88); /* Glossy cleanroom glassmorphic white */
+            --border-color: rgba(37, 99, 235, 0.18); /* Royal tech blue border */
+            --border-hover: rgba(37, 99, 235, 0.55);
             
-            --neon-cyan: #06b6d4;
-            --neon-green: #10b981;
-            --neon-red: #ef4444;
-            --neon-amber: #f59e0b;
-            --neon-blue: #3b82f6;
+            --neon-cyan: #0284c7; /* Holographic Sky blue */
+            --neon-green: #10b981; /* High contrast neon green */
+            --neon-red: #ef4444; /* High contrast neon red */
+            --neon-amber: #d97706; /* High contrast neon amber */
+            --neon-blue: #2563eb; /* Royal blue */
 
-            --glow-cyan: 0 0 12px rgba(6, 182, 212, 0.5);
-            --glow-green: 0 0 12px rgba(16, 185, 129, 0.5);
-            --glow-red: 0 0 12px rgba(239, 68, 68, 0.5);
-            --glow-amber: 0 0 12px rgba(245, 158, 11, 0.5);
+            --glow-cyan: 0 0 10px rgba(2, 132, 199, 0.25);
+            --glow-green: 0 0 10px rgba(16, 185, 129, 0.25);
+            --glow-red: 0 0 10px rgba(239, 68, 68, 0.25);
+            --glow-amber: 0 0 10px rgba(217, 119, 6, 0.25);
 
             --font-cyber: 'Orbitron', 'Inter', sans-serif;
             --font-mono: 'Share Tech Mono', monospace;
@@ -44,7 +46,7 @@
 
         body {
             background-color: var(--bg-darker);
-            color: #e2e8f0;
+            color: #1e293b; /* Dark navy slate text */
             font-family: var(--font-cyber);
             height: 100vh;
             overflow: hidden;
@@ -59,8 +61,8 @@
             width: 100%;
             height: 100%;
             background-image: 
-                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+                linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
             background-size: 30px 30px;
             z-index: 1;
             pointer-events: none;
@@ -73,7 +75,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 50% 50%, transparent 40%, #040812 90%);
+            background: radial-gradient(circle at 50% 50%, transparent 40%, var(--bg-darker) 90%);
         }
 
         #scanline {
@@ -83,13 +85,13 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(
-                rgba(18, 16, 16, 0) 50%, 
-                rgba(0, 0, 0, 0.15) 50%
+                rgba(255, 255, 255, 0) 50%, 
+                rgba(37, 99, 235, 0.03) 50%
             );
             background-size: 100% 4px;
             z-index: 999;
             pointer-events: none;
-            opacity: 0.6;
+            opacity: 0.3;
         }
 
         /* TEXT STYLES */
@@ -97,8 +99,8 @@
         .text-cyan { color: var(--neon-cyan); text-shadow: var(--glow-cyan); }
         .text-red { color: var(--neon-red); text-shadow: var(--glow-red); }
         .text-amber { color: var(--neon-amber); text-shadow: var(--glow-amber); }
-        .text-gold { color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.4); }
-        .text-dim { color: rgba(226, 232, 240, 0.4); font-family: var(--font-mono); }
+        .text-gold { color: #b45309; text-shadow: 0 0 8px rgba(180, 83, 9, 0.25); }
+        .text-dim { color: rgba(30, 41, 59, 0.55); font-family: var(--font-mono); }
 
         .bg-green { background-color: var(--neon-green); box-shadow: var(--glow-green); }
         .bg-cyan { background-color: var(--neon-cyan); box-shadow: var(--glow-cyan); }
@@ -125,7 +127,7 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 0 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.05);
             backdrop-filter: blur(10px);
         }
 
@@ -139,7 +141,7 @@
             font-size: 1.25rem;
             font-weight: 900;
             letter-spacing: 2px;
-            background: linear-gradient(135deg, #ffffff 40%, var(--neon-cyan));
+            background: linear-gradient(135deg, #0f172a 40%, var(--neon-blue));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -159,15 +161,15 @@
         }
 
         .cleanroom-status {
-            background: rgba(6, 182, 212, 0.08);
-            border: 1px solid rgba(6, 182, 212, 0.25);
+            background: rgba(37, 99, 235, 0.05);
+            border: 1px solid rgba(37, 99, 235, 0.2);
             border-radius: 6px;
             padding: 5px 12px;
             font-family: var(--font-mono);
             font-size: 0.82rem;
         }
-        .cleanroom-status .label { color: rgba(226, 232, 240, 0.5); }
-        .cleanroom-status .value { color: var(--neon-cyan); font-weight: bold; }
+        .cleanroom-status .label { color: rgba(30, 41, 59, 0.6); }
+        .cleanroom-status .value { color: var(--neon-blue); font-weight: bold; }
 
         .stability-beacons {
             display: flex;
@@ -175,15 +177,15 @@
             gap: 10px;
             font-size: 0.85rem;
             font-family: var(--font-mono);
-            color: rgba(226, 232, 240, 0.6);
+            color: rgba(30, 41, 59, 0.8);
         }
         .beacons-wrapper { display: flex; gap: 6px; }
         .beacon {
             width: 22px;
             height: 12px;
             border-radius: 2.5px;
-            background: #1e293b;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #cbd5e1;
+            border: 1px solid rgba(0, 0, 0, 0.08);
             transition: all 0.3s ease;
         }
         .beacon.active {
@@ -218,7 +220,7 @@
             padding: 15px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.06);
             backdrop-filter: blur(10px);
             min-height: 0;
         }
@@ -226,10 +228,10 @@
         .panel-title {
             font-size: 0.95rem;
             font-weight: 700;
-            color: #ffffff;
+            color: #0f172a; /* Slate navy */
             margin-bottom: 12px;
             letter-spacing: 1px;
-            border-left: 3px solid var(--neon-cyan);
+            border-left: 3px solid var(--neon-blue);
             padding-left: 8px;
         }
 
@@ -248,8 +250,8 @@
         }
 
         .metric-card {
-            background: rgba(10, 15, 30, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            background: rgba(248, 250, 252, 0.95);
+            border: 1px solid rgba(37, 99, 235, 0.08);
             border-radius: 6px;
             padding: 10px 14px;
             display: flex;
@@ -259,12 +261,13 @@
         }
         .metric-card:hover {
             border-color: var(--border-hover);
-            background: rgba(10, 15, 30, 0.9);
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
         }
 
         .metric-label {
             font-size: 0.72rem;
-            color: rgba(226, 232, 240, 0.45);
+            color: rgba(30, 41, 59, 0.6);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -280,14 +283,14 @@
         }
         .metric-value-wrapper .unit {
             font-size: 0.8rem;
-            color: rgba(226, 232, 240, 0.4);
+            color: rgba(30, 41, 59, 0.5);
             font-family: var(--font-mono);
         }
 
         .metric-progress-bar {
             width: 100%;
             height: 4px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.06);
             border-radius: 2px;
             overflow: hidden;
             margin-top: 2px;
@@ -298,7 +301,7 @@
         }
         .metric-sub {
             font-size: 0.65rem;
-            color: rgba(226, 232, 240, 0.35);
+            color: rgba(30, 41, 59, 0.5);
             font-family: var(--font-mono);
         }
 
@@ -306,20 +309,20 @@
         #terminal-log {
             margin-top: 15px;
             height: 140px;
-            background: rgba(2, 6, 12, 0.85);
-            border: 1px solid rgba(6, 182, 212, 0.15);
+            background: #0b1528; /* Maintain deep navy dark console for elite look */
+            border: 1px solid rgba(37, 99, 235, 0.2);
             border-radius: 6px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
         .terminal-header {
-            background: rgba(6, 182, 212, 0.05);
-            border-bottom: 1px solid rgba(6, 182, 212, 0.1);
+            background: rgba(37, 99, 235, 0.08);
+            border-bottom: 1px solid rgba(37, 99, 235, 0.15);
             padding: 4px 10px;
             font-family: var(--font-mono);
             font-size: 0.68rem;
-            color: rgba(6, 182, 212, 0.8);
+            color: #60a5fa;
             display: flex;
             justify-content: space-between;
         }
@@ -344,30 +347,30 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding-bottom: 8px;
             margin-bottom: 12px;
         }
         .controls-hint {
             font-size: 0.72rem;
-            color: rgba(226, 232, 240, 0.4);
+            color: rgba(30, 41, 59, 0.6);
             font-family: var(--font-mono);
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(37, 99, 235, 0.05);
             padding: 3px 8px;
             border-radius: 4px;
-            border: 1px dashed rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(37, 99, 235, 0.2);
         }
 
         /* AOI SCAN DIAGNOSTIC SCREEN */
         #hologram-screen {
             height: 145px;
-            background: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.08) 0%, rgba(2, 6, 12, 0.9) 80%);
-            border: 1px solid rgba(6, 182, 212, 0.25);
+            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.15) 0%, rgba(255, 255, 255, 0.95) 90%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
             border-radius: 6px;
             position: relative;
             overflow: hidden;
             margin-bottom: 15px;
-            box-shadow: inset 0 0 15px rgba(6, 182, 212, 0.15);
+            box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.1);
         }
         .hologram-grid-bg {
             position: absolute;
@@ -377,16 +380,16 @@
             height: 100%;
             background-size: 20px 20px;
             background-image: 
-                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+                linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px);
         }
         .scan-laser-line {
             position: absolute;
             left: 0;
             width: 100%;
             height: 2px;
-            background: var(--neon-cyan);
-            box-shadow: 0 0 10px var(--neon-cyan), 0 0 3px var(--neon-cyan);
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue), 0 0 3px var(--neon-blue);
             z-index: 5;
             animation: laser-sweep-holo 3s infinite linear;
         }
@@ -414,7 +417,7 @@
         #holo-svg {
             width: 100%;
             height: 100%;
-            filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.4));
+            filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
         }
         .hologram-readout {
             width: 250px;
@@ -423,16 +426,17 @@
             gap: 6px;
             font-family: var(--font-mono);
             font-size: 0.78rem;
-            background: rgba(2, 6, 12, 0.65);
-            border: 1px solid rgba(6, 182, 212, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.25);
             border-radius: 4px;
             padding: 10px 12px;
+            color: #0f172a;
         }
         .readout-row {
             display: flex;
             justify-content: space-between;
         }
-        .readout-label { color: rgba(226, 232, 240, 0.4); }
+        .readout-label { color: rgba(30, 41, 59, 0.7); }
 
         /* CANVAS CONVEYOR STAGE */
         #stage-container {
@@ -440,11 +444,12 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            background: rgba(2, 6, 12, 0.45);
-            border: 1px solid rgba(6, 182, 212, 0.15);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(37, 99, 235, 0.2);
             border-radius: 6px;
             overflow: hidden;
             margin-bottom: 12px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.03);
         }
         .suction-tag, .scrap-tag {
             height: 22px;
@@ -459,21 +464,208 @@
             z-index: 10;
         }
         .suction-tag {
-            background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
-            border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
             color: var(--neon-green);
         }
         .scrap-tag {
-            background: linear-gradient(0deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
-            border-top: 1px solid rgba(239, 68, 68, 0.15);
+            background: linear-gradient(0deg, rgba(239, 68, 68, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            border-top: 1px solid rgba(239, 68, 68, 0.2);
             color: var(--neon-red);
         }
-        #game-canvas {
+        #game-stage {
             flex: 1;
             width: 100%;
-            display: block;
-            background: #03060f;
+            position: relative;
+            background: #f0f9ff; /* Bright sky blue cleanroom background */
             cursor: pointer;
+            overflow: hidden;
+            display: block;
+        }
+
+        #conveyor-belt {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 76px;
+            transform: translateY(-50%);
+            background: linear-gradient(180deg, #cbd5e1 0%, #e2e8f0 50%, #cbd5e1 100%);
+            border-top: 2.5px solid rgba(37, 99, 235, 0.45);
+            border-bottom: 2.5px solid rgba(37, 99, 235, 0.45);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.05);
+            overflow: hidden;
+        }
+
+        .belt-stripes {
+            position: absolute;
+            top: 0;
+            left: -100px;
+            width: calc(100% + 200px);
+            height: 100%;
+            background-image: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 15px,
+                rgba(37, 99, 235, 0.12) 15px,
+                rgba(37, 99, 235, 0.12) 20px
+            );
+            animation: slide-belt 10s linear infinite;
+        }
+
+        @keyframes slide-belt {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100px); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Laser gate scanner overlay */
+        #laser-gate {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 90px;
+            height: 100%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .laser-line {
+            position: absolute;
+            top: 0;
+            width: 1.5px;
+            height: 100%;
+            border-left: 1.5px dashed rgba(2, 132, 199, 0.35);
+        }
+
+        .laser-line.left { left: 0; }
+        .laser-line.right { right: 0; }
+
+        .laser-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(6, 182, 212, 0.03);
+        }
+
+        /* Dynamic chip elements styled using CSS! */
+        .dom-chip {
+            position: absolute;
+            width: 66px;
+            height: 66px;
+            background: #f1f5f9;
+            border: 2px solid #94a3b8;
+            border-radius: 6px;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            z-index: 4;
+        }
+
+        .dom-chip.scanned {
+            border-color: #2563eb;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.35);
+        }
+
+        .dom-chip.perfect .silicon-die {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border: 1.5px solid #2563eb;
+        }
+
+        .dom-chip.defective .silicon-die {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            border: 1.5px solid #dc2626;
+        }
+
+        .silicon-die {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+        }
+
+        .dom-chip.defect-misaligned .silicon-die {
+            transform: translate(3px, 2px) rotate(7deg);
+        }
+
+        /* Diagnostic LED for perfect chips */
+        .diag-led {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 6px #10b981;
+        }
+
+        /* Gold Bumps */
+        .die-bump {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #eab308;
+        }
+        .die-bump.lt { top: 3px; left: 3px; }
+        .die-bump.rt { top: 3px; right: 3px; }
+        .die-bump.lb { bottom: 3px; left: 3px; }
+        .die-bump.rb { bottom: 3px; right: 3px; }
+
+        /* Specific visual defects */
+        .defect-crack-line {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='66' height='66'><path d='M10 20 L25 35 L15 50 L30 60' fill='none' stroke='%23ef4444' stroke-width='2.5'/></svg>");
+        }
+
+        .defect-particle-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #d97706;
+            box-shadow: 0 0 4px #eab308;
+        }
+
+        .defect-solder-bridge {
+            position: absolute;
+            bottom: 3px;
+            width: 30px;
+            height: 5px;
+            border-radius: 1.5px;
+            background: #64748b;
+            border: 1px solid #475569;
+        }
+
+        /* Particles (Sparks) */
+        .dom-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10;
         }
 
         /* ACTION DECK TACTILE BUTTONS */
@@ -536,7 +728,7 @@
             transform: translateY(3.5px);
             box-shadow: 0 1.5px 0 #7f1d1d, 0 3px 8px rgba(239, 68, 68, 0.35);
         }
-        .btn-text { font-size: 1.05rem; text-shadow: 0 2px 3px rgba(0,0,0,0.5); }
+        .btn-text { font-size: 1.05rem; text-shadow: 0 2px 3px rgba(0,0,0,0.4); }
         .btn-shortcut {
             font-family: var(--font-mono);
             font-size: 0.7rem;
@@ -559,12 +751,12 @@
         }
         .upgrade-deck-title {
             font-size: 0.8rem;
-            color: rgba(226, 232, 240, 0.55);
+            color: rgba(30, 41, 59, 0.65);
             margin-bottom: 6px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding-bottom: 3px;
         }
         .upgrades-container {
@@ -574,8 +766,8 @@
         }
         .upgrade-card {
             flex: 1;
-            background: rgba(10, 15, 30, 0.6);
-            border: 1px solid rgba(6, 182, 212, 0.1);
+            background: rgba(248, 250, 252, 0.95);
+            border: 1px solid rgba(37, 99, 235, 0.1);
             border-radius: 6px;
             padding: 6px 12px;
             display: flex;
@@ -585,7 +777,8 @@
         }
         .upgrade-card:hover {
             border-color: var(--border-hover);
-            background: rgba(10, 15, 30, 0.85);
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
         }
         .upg-details {
             display: flex;
@@ -593,20 +786,20 @@
             gap: 1px;
             max-width: 72%;
         }
-        .upg-name { font-size: 0.78rem; font-weight: bold; color: #ffffff; }
-        .upg-desc { font-size: 0.65rem; color: rgba(226, 232, 240, 0.4); line-height: 1.25; }
-        .upg-level { font-family: var(--font-mono); font-size: 0.68rem; color: var(--neon-cyan); font-weight: bold; }
+        .upg-name { font-size: 0.78rem; font-weight: bold; color: #0f172a; }
+        .upg-desc { font-size: 0.65rem; color: rgba(30, 41, 59, 0.55); line-height: 1.25; }
+        .upg-level { font-family: var(--font-mono); font-size: 0.68rem; color: var(--neon-blue); font-weight: bold; }
         .upg-btn {
             font-family: var(--font-cyber);
             font-size: 0.7rem;
             font-weight: 700;
             color: #ffffff;
-            background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
-            border: 1px solid #f59e0b;
+            background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+            border: 1px solid #3b82f6;
             border-radius: 4px;
             padding: 6px 10px;
             cursor: pointer;
-            box-shadow: 0 3px 6px rgba(245, 158, 11, 0.2);
+            box-shadow: 0 3px 6px rgba(37, 99, 235, 0.2);
             transition: all 0.15s;
             display: flex;
             flex-direction: column;
@@ -615,14 +808,14 @@
             width: 85px;
         }
         .upg-btn:hover:not(:disabled) {
-            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.35);
             filter: brightness(1.15);
         }
         .upg-btn:active:not(:disabled) { transform: translateY(1px); }
         .upg-btn:disabled {
-            background: #334155;
-            border-color: #475569;
-            color: #64748b;
+            background: #cbd5e1;
+            border-color: #cbd5e1;
+            color: #94a3b8;
             cursor: not-allowed;
             box-shadow: none;
         }
@@ -635,7 +828,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(3, 7, 18, 0.88);
+            background: rgba(241, 245, 249, 0.96); /* Slate light gray */
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -651,46 +844,46 @@
         .overlay-panel {
             width: 550px;
             border-radius: 12px;
-            border: 2px solid var(--border-color);
+            border: 2px solid rgba(37, 99, 235, 0.3);
             padding: 30px;
             text-align: center;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 20px 50px rgba(37, 99, 235, 0.15);
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 20px;
             backdrop-filter: blur(15px);
-            background: rgba(10, 15, 29, 0.85);
+            background: rgba(255, 255, 255, 0.96);
         }
         .overlay-panel.hazard-border {
             border-color: var(--neon-red);
-            box-shadow: 0 0 25px rgba(239, 68, 68, 0.3), inset 0 0 20px rgba(239, 68, 68, 0.1);
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.2), inset 0 0 20px rgba(239, 68, 68, 0.05);
         }
         .glow-title {
             font-size: 1.65rem;
             font-weight: 900;
             letter-spacing: 2px;
-            color: #ffffff;
-            text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+            color: #0f172a;
+            text-shadow: 0 0 12px rgba(37, 99, 235, 0.2);
         }
         .glow-title.text-red { color: var(--neon-red); text-shadow: var(--glow-red); }
         .subtitle {
             font-family: var(--font-mono);
             font-size: 0.78rem;
-            color: var(--neon-cyan);
+            color: var(--neon-blue);
             letter-spacing: 2px;
         }
         .lore-box {
-            background: rgba(2, 6, 12, 0.75);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(241, 245, 249, 0.95);
+            border: 1px solid rgba(37, 99, 235, 0.15);
             border-radius: 8px;
             padding: 15px 20px;
             text-align: left;
             font-size: 0.8rem;
             line-height: 1.6;
-            color: rgba(226, 232, 240, 0.75);
+            color: #1e293b;
         }
-        .lore-box strong { color: var(--neon-cyan); }
+        .lore-box strong { color: var(--neon-blue); }
         .lore-box p { margin-bottom: 6px; }
         .lore-box ul { padding-left: 18px; margin-bottom: 6px; }
 
@@ -701,8 +894,8 @@
         }
         .ins-card {
             flex: 1;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #ffffff;
+            border: 1px solid rgba(37, 99, 235, 0.15);
             border-radius: 8px;
             padding: 12px;
             display: flex;
@@ -711,56 +904,56 @@
             gap: 4px;
         }
         .ins-key {
-            background: #334155;
-            border: 1.5px solid #475569;
-            box-shadow: 0 3px 0 #1e293b;
+            background: #e2e8f0;
+            border: 1.5px solid #cbd5e1;
+            box-shadow: 0 3px 0 #94a3b8;
             border-radius: 4px;
             font-family: var(--font-mono);
             font-weight: bold;
             padding: 2px 10px;
             font-size: 0.85rem;
-            color: #ffffff;
+            color: #0f172a;
             min-width: 30px;
             text-align: center;
         }
-        .ins-card p { font-size: 0.82rem; font-weight: bold; color: #ffffff; margin-top: 4px; }
-        .ins-note { font-size: 0.68rem; color: rgba(226, 232, 240, 0.4); }
+        .ins-card p { font-size: 0.82rem; font-weight: bold; color: #0f172a; margin-top: 4px; }
+        .ins-note { font-size: 0.68rem; color: rgba(30, 41, 59, 0.6); }
 
         .sound-consent {
             font-size: 0.82rem;
-            color: rgba(226, 232, 240, 0.7);
+            color: #1e293b;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .sound-consent input { cursor: pointer; accent-color: var(--neon-cyan); }
+        .sound-consent input { cursor: pointer; accent-color: var(--neon-blue); }
 
         .huge-glow-btn {
             font-family: var(--font-cyber);
             font-size: 1rem;
             font-weight: 900;
             color: #ffffff;
-            background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
-            border: 2px solid #22d3ee;
+            background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+            border: 2px solid #3b82f6;
             border-radius: 8px;
             padding: 12px 28px;
             cursor: pointer;
             letter-spacing: 2px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 15px rgba(6, 182, 212, 0.35);
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.15), 0 0 15px rgba(37, 99, 235, 0.15);
             transition: all 0.2s;
         }
         .huge-glow-btn:hover {
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 25px rgba(6, 182, 212, 0.6);
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.25), 0 0 25px rgba(37, 99, 235, 0.35);
             filter: brightness(1.15);
         }
         .huge-glow-btn:active { transform: translateY(2px); }
         .huge-glow-btn.hazard-bg {
             background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
             border-color: #f87171;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 15px rgba(239, 68, 68, 0.35);
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.15), 0 0 15px rgba(239, 68, 68, 0.15);
         }
         .huge-glow-btn.hazard-bg:hover {
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4), 0 0 25px rgba(239, 68, 68, 0.6);
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.25), 0 0 25px rgba(239, 68, 68, 0.35);
         }
 
         .results-stats {
@@ -768,22 +961,23 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background: rgba(2, 6, 12, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(241, 245, 249, 0.95);
+            border: 1px solid rgba(37, 99, 235, 0.15);
             border-radius: 8px;
             padding: 12px 20px;
             font-family: var(--font-mono);
             text-align: left;
+            color: #1e293b;
         }
         .stat-row {
             display: flex;
             justify-content: space-between;
             font-size: 0.85rem;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            border-bottom: 1px dashed rgba(37, 99, 235, 0.15);
             padding-bottom: 5px;
         }
         .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .game-over-reason { font-size: 0.78rem; color: rgba(226, 232, 240, 0.5); line-height: 1.5; padding: 0 10px; }
+        .game-over-reason { font-size: 0.78rem; color: rgba(30, 41, 59, 0.7); line-height: 1.5; padding: 0 10px; }
 
         /* RESPONSIVE SCALING FOR SHORTER VIEWPORTS */
         @media (max-height: 720px) {
@@ -944,11 +1138,29 @@
                     </div>
                 </div>
 
-                <!-- HTML5 CANVAS STAGE CONTAINER -->
+                <!-- HIGH FIDELITY PURE DOM STAGE CONTAINER (100% FOOLPROOF & ROBUST DISPLAY) -->
                 <div id="stage-container">
                     <div class="suction-tag">3D PACKAGING VACUUM SUCTION</div>
                     
-                    <canvas id="game-canvas"></canvas>
+                    <div id="game-stage">
+                        <!-- Conveyor Belt -->
+                        <div id="conveyor-belt">
+                            <div class="belt-stripes"></div>
+                        </div>
+                        
+                        <!-- Laser Scanner Gate -->
+                        <div id="laser-gate">
+                            <div class="laser-line left"></div>
+                            <div class="laser-line right"></div>
+                            <div class="laser-glow"></div>
+                        </div>
+
+                        <!-- Dynamic Wafer Chips Stream -->
+                        <div id="chips-container"></div>
+                        
+                        <!-- Dynamic Sparks Particle Effects -->
+                        <div id="particles-container"></div>
+                    </div>
                     
                     <div class="scrap-tag">AUTOMATED RECYCLE SCRAP BIN</div>
                 </div>
@@ -978,7 +1190,7 @@
                 <div class="upgrade-card" id="upg-aoi">
                     <div class="upg-details">
                         <span class="upg-name">AI 智慧缺陷輔助 (AOI+)</span>
-                        <p class="upg-desc">利用 AI 輔助光學，在 Canvas 上直接以雷達紅圈標記出瑕疵晶片位置。</p>
+                        <p class="upg-desc">利用 AI 輔助光學，在畫面上直接以雷達紅圈標記出瑕疵晶片位置。</p>
                         <span class="upg-level" id="upg-aoi-level">Lv 0 / 3</span>
                     </div>
                     <button class="upg-btn" id="btn-upg-aoi" disabled>
@@ -1090,6 +1302,35 @@
 
     <!-- CORE JAVASCRIPT LOGIC -->
     <script>
+        // Global error logging for foolproof remote troubleshooting
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("Global Error Caught:", message, "at", source, ":", lineno);
+            const errorMsg = error ? error.stack : `${message}\nLine: ${lineno}\nColumn: ${colno}`;
+            alert("產線系統運行異常！\n詳細資訊:\n" + errorMsg);
+            
+            if (!document.getElementById('sys-critical-error-banner')) {
+                const banner = document.createElement('div');
+                banner.id = 'sys-critical-error-banner';
+                banner.style.position = 'fixed';
+                banner.style.top = '0';
+                banner.style.left = '0';
+                banner.style.width = '100vw';
+                banner.style.background = '#ef4444';
+                banner.style.color = '#ffffff';
+                banner.style.padding = '15px';
+                banner.style.zIndex = '99999';
+                banner.style.fontFamily = 'monospace';
+                banner.style.fontSize = '12px';
+                banner.style.whiteSpace = 'pre-wrap';
+                banner.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+                banner.innerHTML = `<h3>[SYSTEM CRITICAL ERROR] FAB-36 SYSTEM CRASH</h3><p>An unexpected exception occurred during execution.</p><hr style="margin: 10px 0; border-color: rgba(255,255,255,0.3);"/><p><strong>Error Message:</strong> ${message}</p><p><strong>Stack Trace:</strong></p><pre style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; overflow-x: auto;">${errorMsg}</pre>`;
+                document.body.appendChild(banner);
+            }
+            return false;
+        };
+
+        // Using custom drawRoundRect in class instead of prototype pollution for 100% compatibility
+
         class AdvancedPackagingGame {
             constructor() {
                 // Game States
@@ -1125,11 +1366,12 @@
                 this.audioCtx = null;
                 this.audioEnabled = true;
 
-                // Canvas setup
-                this.canvas = document.getElementById('game-canvas');
-                this.gl = this.canvas.getContext('2d');
+                // DOM containers setup
+                this.stage = document.getElementById('game-stage');
+                this.chipsContainer = document.getElementById('chips-container');
+                this.particlesContainer = document.getElementById('particles-container');
                 this.canvasWidth = 0;
-                this.canvasHeight = 0;
+                this.canvasHeight = 220; // Keep 220 as standard coordinate standard
                 
                 // Particles / Visual effects
                 this.particles = [];
@@ -1139,13 +1381,64 @@
                 this.handleKeyDown = this.handleKeyDown.bind(this);
                 
                 this.resizeCanvas();
-                window.addEventListener('resize', () => this.resizeCanvas());
+                window.addEventListener('resize', () => {
+                    this.resizeCanvas();
+                    if (!this.isPlaying) this.drawStandbyState();
+                });
+
+                // Defer drawing a few frames on startup to ensure flexbox bounds are settled
+                setTimeout(() => {
+                    this.resizeCanvas();
+                    this.drawStandbyState();
+                }, 80);
+                setTimeout(() => {
+                    this.resizeCanvas();
+                    this.drawStandbyState();
+                }, 400);
             }
 
             resizeCanvas() {
-                const rect = this.canvas.getBoundingClientRect();
-                this.canvasWidth = this.canvas.width = rect.width;
-                this.canvasHeight = this.canvas.height = rect.height;
+                // Use stage width or default to 1000 for standard coordinate tracking
+                this.canvasWidth = this.stage ? (this.stage.clientWidth || 1000) : 1000;
+                this.canvasHeight = 220; // Keep 220 as standard logical height coordinate
+            }
+
+            drawStandbyState() {
+                // Inject standard HTML standby card
+                if (this.chipsContainer) {
+                    this.chipsContainer.innerHTML = `
+                        <div id="dom-standby-card" style="
+                            position: absolute;
+                            left: 50%;
+                            top: 50%;
+                            transform: translate(-50%, -50%);
+                            background: rgba(37, 99, 235, 0.05);
+                            border: 1px solid rgba(37, 99, 235, 0.25);
+                            border-radius: 6px;
+                            padding: 12px 30px;
+                            text-align: center;
+                            backdrop-filter: blur(4px);
+                            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.05);
+                            z-index: 10;
+                            pointer-events: none;
+                            width: 320px;
+                        ">
+                            <div style="
+                                font-family: 'Orbitron', 'Inter', sans-serif;
+                                font-weight: bold;
+                                font-size: 13px;
+                                color: #2563eb;
+                                margin-bottom: 4px;
+                                text-shadow: 0 0 6px rgba(37, 99, 235, 0.3);
+                            ">FAB-36 SYSTEM STANDBY</div>
+                            <div style="
+                                font-family: 'Share Tech Mono', monospace;
+                                font-size: 10px;
+                                color: rgba(30, 41, 59, 0.65);
+                            ">INITIALIZE SYSTEM TO START WAFER CONVEYOR FLOW</div>
+                        </div>
+                    `;
+                }
             }
 
             initAudio() {
@@ -1316,6 +1609,7 @@
             // START GAME
             startGame() {
                 this.initAudio();
+                this.resizeCanvas();
 
                 this.score = 0;
                 this.perfectCount = 0;
@@ -1339,6 +1633,13 @@
                 this.speedMultiplier = 1.0;
                 this.spawnInterval = 2500;
                 this.lastSpawnTime = performance.now();
+
+                // Clear DOM containers
+                if (this.chipsContainer) this.chipsContainer.innerHTML = "";
+                if (this.particlesContainer) this.particlesContainer.innerHTML = "";
+
+                // Spawn the first chip immediately
+                this.spawnChip();
 
                 this.clearTerminal();
                 this.logToTerminal("[SYSTEM] ADVANCED ASSEMBLY LINE ONLINE.", "text-green");
@@ -1364,6 +1665,10 @@
                 cancelAnimationFrame(this.gameLoopId);
                 window.removeEventListener('keydown', this.handleKeyDown);
 
+                // Clear active chips and particles from DOM
+                if (this.chipsContainer) this.chipsContainer.innerHTML = "";
+                if (this.particlesContainer) this.particlesContainer.innerHTML = "";
+
                 document.getElementById('final-score').textContent = `${this.score} dies`;
                 document.getElementById('final-yield').textContent = `${this.yieldRate.toFixed(1)}%`;
                 
@@ -1383,46 +1688,34 @@
                 this.logToTerminal(`[FATAL] PRODUCTION LINE HALTED. Reason: ${reason === "yield" ? "Low Yield" : "Severe Damage"}`, "text-red");
             }
 
-            // GAME LOOP (Canvas animation tick)
-            update(timestamp) {
+            // GAME LOOP (DOM animation tick)
+            update() {
                 if (!this.isPlaying) return;
+
+                const now = performance.now();
 
                 // Scale speed and spawning rates log-normally based on score
                 this.speedMultiplier = 1.0 + Math.log10(this.score + 1) * (0.85 - this.beltLevel * 0.2);
                 this.spawnInterval = Math.max(1000, 2500 - Math.log10(this.score + 1) * 850 + this.beltLevel * 180);
 
-                // Spawn check: chips enter from the RIGHT side of the canvas
-                const elapsed = timestamp - this.lastSpawnTime;
-                if (elapsed >= this.spawnInterval) {
-                    this.spawnChip();
-                    this.lastSpawnTime = timestamp;
+                // Dynamically update the sliding belt stripes CSS animation speed
+                const stripes = document.querySelector('.belt-stripes');
+                if (stripes) {
+                    stripes.style.animationDuration = `${10 / this.speedMultiplier}s`;
                 }
 
-                // Core Physics & Update
-                this.gl.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+                // Spawn check: chips enter from the RIGHT side
+                const elapsed = now - this.lastSpawnTime;
+                if (elapsed >= this.spawnInterval) {
+                    this.spawnChip();
+                    this.lastSpawnTime = now;
+                }
 
-                // Draw Conveyor belt background structures
-                this.drawConveyorBeltStatic();
-
-                // Draw laser scanning overlay
+                // Laser scanning gate coordinates
                 const laserX = this.canvasWidth * 0.5;
                 const laserWidth = 90;
-                
-                // Scanner area glowing indicator
-                this.gl.fillStyle = 'rgba(6, 182, 212, 0.04)';
-                this.gl.fillRect(laserX - laserWidth*0.5, 0, laserWidth, this.canvasHeight);
-                this.gl.strokeStyle = 'rgba(6, 182, 212, 0.35)';
-                this.gl.lineWidth = 1.5;
-                this.gl.setLineDash([4, 4]);
-                this.gl.beginPath();
-                this.gl.moveTo(laserX - laserWidth*0.5, 0);
-                this.gl.lineTo(laserX - laserWidth*0.5, this.canvasHeight);
-                this.gl.moveTo(laserX + laserWidth*0.5, 0);
-                this.gl.lineTo(laserX + laserWidth*0.5, this.canvasHeight);
-                this.gl.stroke();
-                this.gl.setLineDash([]); // clear dash
 
-                // Update & Render active chips on Conveyor belt
+                // Update & Animate active chips on Conveyor belt
                 const currentSpeed = this.baseSpeed * this.speedMultiplier;
                 let scannedChipThisFrame = null;
 
@@ -1441,6 +1734,7 @@
                         }
 
                         if (chip.opacity <= 0) {
+                            if (chip.el) chip.el.remove();
                             this.chips.splice(i, 1);
                             continue;
                         }
@@ -1448,10 +1742,11 @@
                         // Move chip from right to left (by decreasing x)
                         chip.x -= currentSpeed;
 
-                        // Check entering Scanning laser gate (center of canvas)
+                        // Check entering Scanning laser gate
                         if (chip.x + 35 >= laserX - laserWidth*0.5 && chip.x - 35 <= laserX + laserWidth*0.5) {
                             if (!chip.isScanned) {
                                 chip.isScanned = true;
+                                if (chip.el) chip.el.classList.add('scanned');
                                 this.playScanSound();
                                 this.updateHolographicScanner(chip);
                             }
@@ -1460,6 +1755,7 @@
 
                         // Auto roll-off processing if chip exits on the LEFT (x < -50)
                         if (chip.x <= -50) {
+                            if (chip.el) chip.el.remove();
                             this.chips.splice(i, 1);
                             
                             if (chip.type === 'perfect') {
@@ -1487,14 +1783,24 @@
                         }
                     }
 
-                    // Render current chip block on Canvas
-                    this.drawChipOnCanvas(chip);
+                    // Update DOM position for current chip block
+                    if (chip.el) {
+                        chip.el.style.left = `${chip.x}px`;
+                        chip.el.style.top = `calc(50% + ${chip.y - 110}px)`;
+                        
+                        let transformStr = `translate(-50%, -50%)`;
+                        if (chip.rotation !== 0) {
+                            transformStr += ` rotate(${chip.rotation}rad)`;
+                        }
+                        chip.el.style.transform = transformStr;
+                        chip.el.style.opacity = `${chip.opacity}`;
+                    }
                 }
 
                 // Holographic terminal ticks
                 this.tickHolographicReadout(scannedChipThisFrame);
 
-                // Update & Render active particles (sparks)
+                // Update & Animate active sparks
                 this.drawAndUpdateParticles();
 
                 // Loop next frame
@@ -1503,206 +1809,7 @@
                 }
             }
 
-            // CANVAS GRAPHICS - STATIC BELT
-            drawConveyorBeltStatic() {
-                const cy = this.canvasHeight * 0.5;
-                const h = 76; // Belt height
-
-                // Track rail
-                this.gl.fillStyle = '#111827';
-                this.gl.fillRect(0, cy - h*0.5, this.canvasWidth, h);
-                this.gl.strokeStyle = '#374151';
-                this.gl.lineWidth = 3.5;
-                this.gl.strokeRect(-2, cy - h*0.5, this.canvasWidth + 4, h);
-
-                // Rollers gears
-                this.gl.fillStyle = '#1f2937';
-                this.gl.strokeStyle = '#4b5563';
-                this.gl.lineWidth = 2.5;
-
-                const rollerSpacing = 80;
-                // Move rollers slightly to simulate belt rotation
-                const offset = (performance.now() * 0.08 * this.speedMultiplier) % rollerSpacing;
-
-                for (let rx = -offset; rx < this.canvasWidth + rollerSpacing; rx += rollerSpacing) {
-                    this.gl.beginPath();
-                    this.gl.arc(rx, cy, 7, 0, Math.PI*2);
-                    this.gl.fill();
-                    this.gl.stroke();
-
-                    // Gear notches
-                    this.gl.beginPath();
-                    this.gl.moveTo(rx - 10, cy);
-                    this.gl.lineTo(rx + 10, cy);
-                    this.gl.moveTo(rx, cy - 10);
-                    this.gl.lineTo(rx, cy + 10);
-                    this.gl.stroke();
-                }
-            }
-
-            // CANVAS GRAPHICS - VECTOR CHIP DRAWING
-            drawChipOnCanvas(chip) {
-                const cy = chip.y;
-                const cx = chip.x;
-                const size = 66;
-
-                this.gl.save();
-                this.gl.translate(cx, cy);
-                this.gl.rotate(chip.rotation);
-                this.gl.globalAlpha = chip.opacity;
-
-                // 1. Draw base substrate (Green PCB)
-                this.gl.fillStyle = '#0e2b1f';
-                this.gl.strokeStyle = chip.isScanned ? 'var(--neon-cyan)' : '#475569';
-                this.gl.lineWidth = chip.isScanned ? 2.5 : 2;
-                
-                // Add glowing glow shadow if highlighted
-                if (chip.isScanned) {
-                    this.gl.shadowColor = 'rgba(6, 182, 212, 0.5)';
-                    this.gl.shadowBlur = 10;
-                }
-
-                this.gl.beginPath();
-                this.gl.roundRect(-size*0.5, -size*0.5, size, size, 6);
-                this.gl.fill();
-                this.gl.stroke();
-
-                // Clear shadow for internal layers
-                this.gl.shadowBlur = 0;
-
-                // 2. PCB Gold circuits traces
-                this.gl.strokeStyle = '#1e6b4e';
-                this.gl.lineWidth = 1;
-                this.gl.beginPath();
-                this.gl.moveTo(-size*0.4, -size*0.4);
-                this.gl.lineTo(size*0.4, size*0.4);
-                this.gl.moveTo(size*0.4, -size*0.4);
-                this.gl.lineTo(-size*0.4, size*0.4);
-                this.gl.stroke();
-
-                // 3. Silicon Die core block
-                const dieSize = 36;
-                // Misaligned defect shifts the silicon die!
-                let dx = 0;
-                let dy = 0;
-                let dieRot = 0;
-                if (chip.type === 'defect-misaligned') {
-                    dx = 3;
-                    dy = 2;
-                    dieRot = 0.12; // tilted die crooked
-                }
-
-                this.gl.save();
-                this.gl.translate(dx, dy);
-                this.gl.rotate(dieRot);
-
-                // Silicon die look: dark metallic
-                const dieGrad = this.gl.createLinearGradient(-dieSize*0.5, -dieSize*0.5, dieSize*0.5, dieSize*0.5);
-                
-                if (chip.type === 'perfect') {
-                    // Perfect chips: High-tech cobalt blue silicon block
-                    dieGrad.addColorStop(0, '#1e3a8a');
-                    dieGrad.addColorStop(1, '#0f172a');
-                    this.gl.strokeStyle = '#3b82f6';
-                } else {
-                    // Defective chips: Warning alert hazard red/dark red block
-                    dieGrad.addColorStop(0, '#ef4444');
-                    dieGrad.addColorStop(1, '#1e0505');
-                    this.gl.strokeStyle = '#b91c1c';
-                }
-
-                this.gl.fillStyle = dieGrad;
-                this.gl.lineWidth = 1.5;
-                this.gl.beginPath();
-                this.gl.roundRect(-dieSize*0.5, -dieSize*0.5, dieSize, dieSize, 3);
-                this.gl.fill();
-                this.gl.stroke();
-
-                // Gold pads bumps on core die
-                this.gl.fillStyle = '#f59e0b';
-                this.gl.beginPath();
-                this.gl.arc(-dieSize*0.35, -dieSize*0.35, 2.5, 0, Math.PI*2);
-                this.gl.arc(dieSize*0.35, -dieSize*0.35, 2.5, 0, Math.PI*2);
-                this.gl.arc(-dieSize*0.35, dieSize*0.35, 2.5, 0, Math.PI*2);
-                this.gl.arc(dieSize*0.35, dieSize*0.35, 2.5, 0, Math.PI*2);
-                this.gl.fill();
-
-                // 4. DRAW SPECIFIC DEFECTS VISUALLY ON CANVAS CHIP
-                if (chip.type === 'defect-crack') {
-                    // Draw red cracked jagged lightning lines on core substrate
-                    this.gl.strokeStyle = '#ef4444';
-                    this.gl.lineWidth = 2.5;
-                    this.gl.beginPath();
-                    this.gl.moveTo(-size*0.4, -size*0.1);
-                    this.gl.lineTo(-size*0.15, size*0.1);
-                    this.gl.lineTo(-size*0.3, size*0.35);
-                    this.gl.stroke();
-                } 
-                else if (chip.type === 'defect-particles') {
-                    // Draw tiny yellow dust particles on core
-                    this.gl.fillStyle = '#fef08a';
-                    this.gl.shadowColor = '#eab308';
-                    this.gl.shadowBlur = 4;
-                    
-                    this.gl.beginPath();
-                    this.gl.arc(-10, -5, 2, 0, Math.PI*2);
-                    this.gl.arc(8, 12, 2.2, 0, Math.PI*2);
-                    this.gl.arc(-2, 10, 1.8, 0, Math.PI*2);
-                    this.gl.fill();
-                    
-                    this.gl.shadowBlur = 0; // clear
-                }
-                else if (chip.type === 'defect-bridge') {
-                    // Solder short circuit bridge on the microbumps at bottom
-                    this.gl.fillStyle = '#a1a1aa';
-                    this.gl.strokeStyle = '#ffffff';
-                    this.gl.lineWidth = 1;
-                    
-                    this.gl.beginPath();
-                    this.gl.roundRect(-size*0.25, size*0.32, size*0.5, 5, 1.5);
-                    this.gl.fill();
-                    this.gl.stroke();
-                }
-                else if (chip.type === 'perfect') {
-                    // Perfect chips feature a green glowing diagnostic LED
-                    this.gl.fillStyle = 'var(--neon-green)';
-                    this.gl.shadowColor = 'var(--neon-green)';
-                    this.gl.shadowBlur = 6;
-                    this.gl.beginPath();
-                    this.gl.arc(-size*0.34, -size*0.34, 3, 0, Math.PI*2);
-                    this.gl.fill();
-                    this.gl.shadowBlur = 0;
-                }
-
-                this.gl.restore(); // Restore die rotation
-
-                // AI Assist HUD indicator sight (Level 3 AOI+)
-                if (this.aoiLevel >= 3 && chip.type !== 'perfect') {
-                    this.gl.strokeStyle = 'rgba(239, 68, 68, 0.75)';
-                    this.gl.lineWidth = 1.5;
-                    this.gl.setLineDash([3, 3]);
-                    this.gl.beginPath();
-                    // Draw spinning target sight
-                    const rotationOffset = (performance.now() * 0.002) % (Math.PI * 2);
-                    this.gl.arc(0, 0, size*0.65, rotationOffset, rotationOffset + Math.PI*2);
-                    this.gl.stroke();
-                    this.gl.setLineDash([]);
-                    
-                    // Crosshairs
-                    this.gl.strokeStyle = '#ef4444';
-                    this.gl.lineWidth = 1;
-                    this.gl.beginPath();
-                    this.gl.moveTo(-size*0.75, 0); this.gl.lineTo(-size*0.58, 0);
-                    this.gl.moveTo(size*0.58, 0); this.gl.lineTo(size*0.75, 0);
-                    this.gl.moveTo(0, -size*0.75); this.gl.lineTo(0, -size*0.58);
-                    this.gl.moveTo(0, size*0.58); this.gl.lineTo(0, size*0.75);
-                    this.gl.stroke();
-                }
-
-                this.gl.restore(); // Restore base transform
-            }
-
-            // RANDOM CHIP GENERATOR (Wafer Stream spawner)
+            // RANDOM CHIP GENERATOR (DOM node spawner)
             spawnChip() {
                 this.chipIdCounter++;
                 const id = `LOT-${this.chipIdCounter}`;
@@ -1733,8 +1840,87 @@
                     rotation: 0,
                     isScanned: false,
                     isSorted: false,
-                    sortDirection: null
+                    sortDirection: null,
+                    el: null
                 };
+
+                // Create the DOM element for the chip
+                const chipEl = document.createElement('div');
+                chipEl.className = 'dom-chip';
+                chipEl.id = `chip-${id}`;
+                if (selectedType === 'perfect') {
+                    chipEl.classList.add('perfect');
+                } else {
+                    chipEl.classList.add('defective');
+                    chipEl.classList.add(selectedType);
+                }
+
+                // Add silicon die core
+                const dieEl = document.createElement('div');
+                dieEl.className = 'silicon-die';
+                
+                // Add gold micro-bumps
+                const bumps = ['lt', 'rt', 'lb', 'rb'];
+                bumps.forEach(pos => {
+                    const bump = document.createElement('div');
+                    bump.className = `die-bump ${pos}`;
+                    dieEl.appendChild(bump);
+                });
+
+                // Add specific visual defect features
+                if (selectedType === 'defect-crack') {
+                    const crack = document.createElement('div');
+                    crack.className = 'defect-crack-line';
+                    chipEl.appendChild(crack);
+                } 
+                else if (selectedType === 'defect-particles') {
+                    // Scatter 3 particle dots
+                    for (let p = 0; p < 3; p++) {
+                        const dot = document.createElement('div');
+                        dot.className = 'defect-particle-dot';
+                        if (p === 0) { dot.style.left = '20%'; dot.style.top = '30%'; }
+                        if (p === 1) { dot.style.left = '70%'; dot.style.top = '60%'; }
+                        if (p === 2) { dot.style.left = '45%'; dot.style.top = '75%'; }
+                        dieEl.appendChild(dot);
+                    }
+                }
+                else if (selectedType === 'defect-bridge') {
+                    const bridge = document.createElement('div');
+                    bridge.className = 'defect-solder-bridge';
+                    chipEl.appendChild(bridge);
+                }
+                else if (selectedType === 'perfect') {
+                    const led = document.createElement('div');
+                    led.className = 'diag-led';
+                    chipEl.appendChild(led);
+                }
+
+                chipEl.appendChild(dieEl);
+
+                // AI Assist HUD indicator sight (Level 3 AOI+)
+                if (this.aoiLevel >= 3 && selectedType !== 'perfect') {
+                    const sight = document.createElement('div');
+                    sight.style.position = 'absolute';
+                    sight.style.width = '80px';
+                    sight.style.height = '80px';
+                    sight.style.border = '1.5px dashed rgba(239, 68, 68, 0.75)';
+                    sight.style.borderRadius = '50%';
+                    sight.style.animation = 'spin 4s linear infinite';
+                    sight.style.pointerEvents = 'none';
+                    chipEl.appendChild(sight);
+                    chipEl.classList.add('ai-targeted');
+                }
+
+                if (this.chipsContainer) {
+                    this.chipsContainer.appendChild(chipEl);
+                }
+                newChip.el = chipEl;
+
+                // Initial position update
+                chipEl.style.left = `${newChip.x}px`;
+                chipEl.style.top = `calc(50% + ${newChip.y - 110}px)`;
+                chipEl.style.transform = `translate(-50%, -50%)`;
+                chipEl.style.opacity = `${newChip.opacity}`;
 
                 this.chips.push(newChip);
             }
@@ -1756,28 +1942,24 @@
                     diagAnalysis.textContent = 'SUBSTRATE CRACK';
                     diagAnalysis.className = 'text-red pulsing';
                     diagDefect.textContent = '94.21%';
-                    // Draw cracked path wireframe
                     holoPath.setAttribute('d', 'M 50 40 L 70 80 L 45 125 L 90 160');
                 }
                 else if (chip.type === 'defect-particles') {
                     diagAnalysis.textContent = 'PARTICLE CONTAMINATION';
                     diagAnalysis.className = 'text-red pulsing';
                     diagDefect.textContent = '78.50%';
-                    // Scatter specs
                     holoPath.setAttribute('d', 'M 40 45 A 2 2 0 1 1 39.9 45 M 120 70 A 3 3 0 1 1 119.9 70 M 80 130 A 2 2 0 1 1 79.9 130');
                 }
                 else if (chip.type === 'defect-misaligned') {
                     diagAnalysis.textContent = '晶粒對位偏差 MISALIGN';
                     diagAnalysis.className = 'text-red pulsing';
                     diagDefect.textContent = '86.13%';
-                    // Crooked wireframe
                     holoPath.setAttribute('d', 'M 45 35 L 145 45 L 135 145 L 35 135 Z');
                 }
                 else if (chip.type === 'defect-bridge') {
                     diagAnalysis.textContent = '凸塊焊料短路 BUMP BRIDGE';
                     diagAnalysis.className = 'text-red pulsing';
                     diagDefect.textContent = '99.98%';
-                    // Bridge short connection highlighted
                     holoPath.setAttribute('d', 'M 80 145 H 120 V 155 H 80 Z');
                 }
             }
@@ -1815,7 +1997,7 @@
                         this.funds += 12; // Extra funds reward for active sorting
                         this.totalCorrect++;
 
-                        // Perfect alignment bonus check (sorted exactly in the scanner center)
+                        // Perfect alignment bonus check
                         const scannerX = this.canvasWidth * 0.5;
                         const dist = Math.abs(chip.x - scannerX);
                         
@@ -1864,7 +2046,7 @@
             handleKeyDown(event) {
                 if (!this.isPlaying) return;
 
-                // Target is the oldest unprocessed chip closest to exiting the belt (furthest left / smallest x)
+                // Target is the oldest unprocessed chip closest to exiting the belt (furthest left)
                 let activeTarget = null;
                 let minX = Infinity;
 
@@ -1897,7 +2079,6 @@
 
             // METRICS ENGINE - CALCULATE & UPDATE
             updateStatsUI() {
-                // Yield calculation: total correct / total processed
                 if (this.totalProcessed > 0) {
                     this.yieldRate = (this.totalCorrect / this.totalProcessed) * 100;
                 } else {
@@ -1973,6 +2154,23 @@
                         this.aoiLevel++;
                         document.getElementById('upg-aoi-level').textContent = `Lv ${this.aoiLevel} / 3`;
                         this.logToTerminal(`[RESEARCH] AI AOI+ Scan Engine upgraded to Level ${this.aoiLevel}!`, "text-cyan");
+                        
+                        // Add target sight to existing defective chips
+                        this.chips.forEach(chip => {
+                            if (chip.type !== 'perfect' && chip.el && !chip.el.querySelector('.dom-ai-sight')) {
+                                const sight = document.createElement('div');
+                                sight.className = 'dom-ai-sight';
+                                sight.style.position = 'absolute';
+                                sight.style.width = '80px';
+                                sight.style.height = '80px';
+                                sight.style.border = '1.5px dashed rgba(239, 68, 68, 0.75)';
+                                sight.style.borderRadius = '50%';
+                                sight.style.animation = 'spin 4s linear infinite';
+                                sight.style.pointerEvents = 'none';
+                                chip.el.appendChild(sight);
+                                chip.el.classList.add('ai-targeted');
+                            }
+                        });
                     } 
                     else if (tech === 'clean') {
                         this.cleanroomLevel++;
@@ -2014,46 +2212,61 @@
                 checkUpg('belt', this.beltLevel);
             }
 
-            // CANVAS PARTICLE SYSTEM (Sparks Visual feedback)
+            // DOM PARTICLE SYSTEM (Sparks Visual feedback)
             spawnSparkParticles(x, y, color) {
-                const count = 12 + Math.floor(Math.random() * 8);
+                const count = 10 + Math.floor(Math.random() * 6);
                 for (let i = 0; i < count; i++) {
                     const angle = Math.random() * Math.PI * 2;
-                    const velocity = 2 + Math.random() * 5;
-                    this.particles.push({
+                    const velocity = 1.5 + Math.random() * 4;
+                    const p = {
                         x: x,
                         y: y,
                         vx: Math.cos(angle) * velocity,
                         vy: Math.sin(angle) * velocity,
                         color: color,
                         opacity: 1.0,
-                        radius: 1.5 + Math.random() * 2
-                    });
+                        radius: 1.5 + Math.random() * 2.5,
+                        el: null
+                    };
+
+                    const pEl = document.createElement('div');
+                    pEl.className = 'dom-particle';
+                    pEl.style.width = `${p.radius * 2}px`;
+                    pEl.style.height = `${p.radius * 2}px`;
+                    pEl.style.backgroundColor = p.color;
+                    pEl.style.boxShadow = `0 0 6px ${p.color}`;
+                    pEl.style.left = `${p.x}px`;
+                    pEl.style.top = `calc(50% + ${p.y - 110}px)`;
+                    pEl.style.opacity = `${p.opacity}`;
+                    
+                    if (this.particlesContainer) {
+                        this.particlesContainer.appendChild(pEl);
+                    }
+                    p.el = pEl;
+
+                    this.particles.push(p);
                 }
             }
 
             drawAndUpdateParticles() {
-                this.particles.forEach((p, idx) => {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
                     p.x += p.vx;
                     p.y += p.vy;
                     p.opacity -= 0.04;
 
                     if (p.opacity <= 0) {
-                        this.particles.splice(idx, 1);
-                        return;
+                        if (p.el) p.el.remove();
+                        this.particles.splice(i, 1);
+                        continue;
                     }
 
-                    this.gl.fillStyle = p.color;
-                    this.gl.globalAlpha = p.opacity;
-                    this.gl.shadowColor = p.color;
-                    this.gl.shadowBlur = 4;
-                    this.gl.beginPath();
-                    this.gl.arc(p.x, p.y, p.radius, 0, Math.PI*2);
-                    this.gl.fill();
-                });
-                
-                this.gl.shadowBlur = 0;
-                this.gl.globalAlpha = 1.0;
+                    if (p.el) {
+                        p.el.style.left = `${p.x}px`;
+                        p.el.style.top = `calc(50% + ${p.y - 110}px)`;
+                        p.el.style.opacity = `${p.opacity}`;
+                    }
+                }
             }
 
             // CORE LOG FEEDS
@@ -2062,17 +2275,19 @@
                 p.className = className;
                 p.textContent = text;
                 const terminal = document.getElementById('terminal-body');
-                terminal.appendChild(p);
+                if (terminal) {
+                    terminal.appendChild(p);
+                    terminal.scrollTop = terminal.scrollHeight;
 
-                terminal.scrollTop = terminal.scrollHeight;
-
-                if (terminal.children.length > 20) {
-                    terminal.children[0].remove();
+                    if (terminal.children.length > 20) {
+                        terminal.children[0].remove();
+                    }
                 }
             }
 
             clearTerminal() {
-                document.getElementById('terminal-body').innerHTML = "";
+                const terminal = document.getElementById('terminal-body');
+                if (terminal) terminal.innerHTML = "";
             }
 
             getDefectChineseName(type) {
@@ -2086,60 +2301,81 @@
             }
         }
 
-        // INITIALIZE ON DOM CONTENT LOAD
         window.addEventListener('load', () => {
-            const game = new AdvancedPackagingGame();
+            try {
+                const game = new AdvancedPackagingGame();
 
-            document.getElementById('btn-start-game').addEventListener('click', () => {
-                const sound = document.getElementById('sound-enabled').checked;
-                game.audioEnabled = sound;
-                game.startGame();
-            });
-
-            document.getElementById('btn-restart-game').addEventListener('click', () => {
-                game.startGame();
-            });
-
-            // Upgrades click events
-            document.getElementById('btn-upg-aoi').addEventListener('click', () => game.buyUpgrade('aoi'));
-            document.getElementById('btn-upg-clean').addEventListener('click', () => game.buyUpgrade('clean'));
-            document.getElementById('btn-upg-belt').addEventListener('click', () => game.buyUpgrade('belt'));
-
-            // Tactile HUD Action buttons
-            document.getElementById('btn-pass').addEventListener('click', () => {
-                if (!game.isPlaying) return;
-                let target = null;
-                let minX = Infinity;
-                game.chips.forEach(c => {
-                    if (!c.isSorted && c.x < minX) {
-                        minX = c.x;
-                        target = c;
-                    }
+                document.getElementById('btn-start-game').addEventListener('click', () => {
+                    const sound = document.getElementById('sound-enabled').checked;
+                    game.audioEnabled = sound;
+                    game.startGame();
                 });
-                if (target) game.sortChip(target, 'pass');
-            });
 
-            document.getElementById('btn-reject').addEventListener('click', () => {
-                if (!game.isPlaying) return;
-                let target = null;
-                let minX = Infinity;
-                game.chips.forEach(c => {
-                    if (!c.isSorted && c.x < minX) {
-                        minX = c.x;
-                        target = c;
-                    }
+                document.getElementById('btn-restart-game').addEventListener('click', () => {
+                    game.startGame();
                 });
-                if (target) game.sortChip(target, 'reject');
-            });
 
-            // Feed clock
-            setInterval(() => {
-                const clock = document.getElementById('system-time');
-                if (clock) {
-                    const d = new Date();
-                    clock.textContent = d.toTimeString().split(' ')[0];
-                }
-            }, 1000);
+                // Upgrades click events
+                document.getElementById('btn-upg-aoi').addEventListener('click', () => game.buyUpgrade('aoi'));
+                document.getElementById('btn-upg-clean').addEventListener('click', () => game.buyUpgrade('clean'));
+                document.getElementById('btn-upg-belt').addEventListener('click', () => game.buyUpgrade('belt'));
+
+                // Tactile HUD Action buttons
+                document.getElementById('btn-pass').addEventListener('click', () => {
+                    if (!game.isPlaying) return;
+                    let target = null;
+                    let minX = Infinity;
+                    game.chips.forEach(c => {
+                        if (!c.isSorted && c.x < minX) {
+                            minX = c.x;
+                            target = c;
+                        }
+                    });
+                    if (target) game.sortChip(target, 'pass');
+                });
+
+                document.getElementById('btn-reject').addEventListener('click', () => {
+                    if (!game.isPlaying) return;
+                    let target = null;
+                    let minX = Infinity;
+                    game.chips.forEach(c => {
+                        if (!c.isSorted && c.x < minX) {
+                            minX = c.x;
+                            target = c;
+                        }
+                    });
+                    if (target) game.sortChip(target, 'reject');
+                });
+
+                // Feed clock
+                setInterval(() => {
+                    const clock = document.getElementById('system-time');
+                    if (clock) {
+                        const d = new Date();
+                        clock.textContent = d.toTimeString().split(' ')[0];
+                    }
+                }, 1000);
+            } catch (err) {
+                console.error("Initialization Error", err);
+                alert("產線控制系統初始化失敗！\n錯誤資訊: " + err.message + "\n\n" + err.stack);
+                
+                // Inject visual error banner
+                const banner = document.createElement('div');
+                banner.style.position = 'fixed';
+                banner.style.top = '0';
+                banner.style.left = '0';
+                banner.style.width = '100vw';
+                banner.style.background = '#ef4444';
+                banner.style.color = '#ffffff';
+                banner.style.padding = '15px';
+                banner.style.zIndex = '99999';
+                banner.style.fontFamily = 'monospace';
+                banner.style.fontSize = '12px';
+                banner.style.whiteSpace = 'pre-wrap';
+                banner.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+                banner.innerHTML = `<h3>[SYSTEM CRITICAL ERROR] FAB-36 SORTER FAULT</h3><p>Could not initialize production control software.</p><hr style="margin: 10px 0; border-color: rgba(255,255,255,0.3);"/><p><strong>Error Message:</strong> ${err.message}</p><p><strong>Stack Trace:</strong></p><pre style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; overflow-x: auto;">${err.stack}</pre>`;
+                document.body.appendChild(banner);
+            }
         });
     </script>
 </body>
